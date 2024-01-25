@@ -68,12 +68,12 @@ gradlePlugin {
     }
 }
 
-pluginBundle {
-    website = 'https://github.com/firstdarkdev/modfusioner'
-    vcsUrl = 'https://github.com/firstdarkdev/modfusioner'
-    description = 'Gradle plugin to merge multiloader/architectury multiplatform mods into a single jar file'
-    tags = ['minecraft', 'forge', 'fabric', 'quilt', 'merge', 'mod']
-}
+//pluginBundle {
+//    website = 'https://github.com/firstdarkdev/modfusioner'
+//    vcsUrl = 'https://github.com/firstdarkdev/modfusioner'
+//    description = 'Gradle plugin to merge multiloader/architectury multiplatform mods into a single jar file'
+//    tags = ['minecraft', 'forge', 'fabric', 'quilt', 'merge', 'mod']
+//}
 
 jar {
     manifest {
