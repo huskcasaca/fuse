@@ -282,7 +282,7 @@ public class FusionerExtension {
          * @param from - The original name of the package. For example: com.google.gson
          * @param to - The new name of the package. For example: forge.com.google.gson
          */
-        public void addRelocation(String from, String to) {
+        public void relocate(String from, String to) {
             this.relocations.put(from, to);
         }
     }
