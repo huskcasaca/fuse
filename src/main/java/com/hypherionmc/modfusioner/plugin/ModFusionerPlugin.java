@@ -48,7 +48,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
         });
 
         // Check for task dependencies and register them on the main task
-        project.subprojects(cc -> cc.afterEvaluate(ccc -> {
+        project.allprojects(cc -> cc.afterEvaluate(ccc -> {
             if (modFusionerExtension.getForgeConfiguration() != null
                     && modFusionerExtension.getForgeConfiguration().inputTaskName != null
                     && !modFusionerExtension.getForgeConfiguration().inputTaskName.isEmpty()) {
@@ -87,7 +87,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
 
             if (modFusionerExtension.getCustomConfigurations() != null && !modFusionerExtension.getCustomConfigurations().isEmpty()) {
                 modFusionerExtension.getCustomConfigurations().forEach(c -> {
-                    if (ccc.getName().equals(c.getProjectName()) && c.getInputTaskName() != null && !c.getInputTaskName().isEmpty())
+                    if (ccc.getPath().equals(c.getProject().getPath()) && c.getInputTaskName() != null && !c.getInputTaskName().isEmpty())
                         resolveInputTasks(ccc, c.getInputTaskName(), c.getProjectName(), task);
                 });
             }
@@ -120,7 +120,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
         if (!(task instanceof AbstractArchiveTask))
             return;
 
-        rootProject.task("prepareFuseTask" + project.getName()).dependsOn(":" + project.getName() + ":" + task.getName());
+        rootProject.task("prepareFuseTask" + project.getName()).dependsOn(task.getPath());
         mainTask.get().dependsOn("prepareFuseTask" + project.getName());
     }
 }

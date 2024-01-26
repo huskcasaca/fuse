@@ -13,6 +13,8 @@ import groovy.lang.Closure;
 import lombok.Getter;
 import lombok.Setter;
 
+import org.gradle.api.Project;
+
 import java.util.*;
 
 public class FusionerExtension {
@@ -251,9 +253,14 @@ public class FusionerExtension {
      */
     public static class CustomConfiguration {
 
-        // The name of the gradle module that contains the custom code
-        @Getter @Setter
-        String projectName;
+		// The name of the gradle module that contains the custom code
+		@Getter @Setter
+		String projectName;
+
+		// The name of the gradle module that contains the custom code
+		@Getter @Setter
+		Project project;
+
 
         // The file that will be used as the input
         @Getter @Setter

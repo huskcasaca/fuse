@@ -108,7 +108,7 @@ public class JarFuseTask extends Jar {
         if (customConfigurations != null) {
             for (FusionerExtension.CustomConfiguration customSettings : customConfigurations) {
                 try {
-                    customProjects.put(rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equals(customSettings.getProjectName())).findFirst().get(), customSettings);
+                    customProjects.put(rootProject.getAllprojects().stream().filter(p -> p.getPath().equals(customSettings.getProject().getPath())).findFirst().get(), customSettings);
                     validation.add(true);
                 } catch (NoSuchElementException ignored) { }
             }
