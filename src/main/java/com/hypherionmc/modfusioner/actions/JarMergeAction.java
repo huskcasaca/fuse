@@ -333,19 +333,19 @@ public class JarMergeAction {
      */
     private void remapResources(File forgeTemps, File fabricTemps, File quiltTemps) throws IOException {
         logger.lifecycle("Start Remapping Resources");
-        remapJarResources(forgeInput, "forge", forgeTemps, forgeRelocations);
-        remapJarResources(fabricInput, "fabric", fabricTemps, fabricRelocations);
-        remapJarResources(quiltInput, "quilt", quiltTemps, quiltRelocations);
-
-        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
-            for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
-                if (entry2.getKey() != null && entry2.getKey().exists()) {
-                    File customTemps = entry2.getValue();
-                    String name = entry.getKey().getProjectName();
-                    remapJarResources(null, name, customTemps, entry.getKey().getRelocations());
-                }
-            }
-        }
+//        remapJarResources(forgeInput, "forge", forgeTemps, forgeRelocations);
+//        remapJarResources(fabricInput, "fabric", fabricTemps, fabricRelocations);
+//        remapJarResources(quiltInput, "quilt", quiltTemps, quiltRelocations);
+//
+//        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+//            for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
+//                if (entry2.getKey() != null && entry2.getKey().exists()) {
+//                    File customTemps = entry2.getValue();
+//                    String name = entry.getKey().getProjectName();
+//                    remapJarResources(null, name, customTemps, entry.getKey().getRelocations());
+//                }
+//            }
+//        }
     }
 
     /**
