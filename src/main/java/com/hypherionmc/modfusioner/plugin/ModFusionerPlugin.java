@@ -9,14 +9,15 @@
  */
 package com.hypherionmc.modfusioner.plugin;
 
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.task.JarFuseTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+
+import com.hypherionmc.modfusioner.Constants;
+import com.hypherionmc.modfusioner.task.FuseJar;
 
 /**
  * @author HypherionSA
@@ -41,7 +42,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
         modFusionerExtension = rootProject.getExtensions().create(Constants.EXTENSION_NAME, FusionerExtension.class);
 
         // Register the task
-        TaskProvider<JarFuseTask> task = rootProject.getTasks().register(Constants.TASK_NAME, JarFuseTask.class);
+        TaskProvider<FuseJar> task = rootProject.getTasks().register(Constants.TASK_NAME, FuseJar.class);
         task.configure(fusioner -> {
             fusioner.setGroup(Constants.TASK_GROUP);
             fusioner.setDescription("Merge multiple jars into a single jar, for multi mod loader projects");
@@ -101,7 +102,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
      * @param inProject - The name of the project the task is on
      * @param mainTask - The FuseJars task
      */
-    private void resolveInputTasks(Project project, Object inTask, String inProject, TaskProvider<JarFuseTask> mainTask) {
+    private void resolveInputTasks(Project project, Object inTask, String inProject, TaskProvider<FuseJar> mainTask) {
         if (inTask == null)
             return;
 

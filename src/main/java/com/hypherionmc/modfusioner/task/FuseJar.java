@@ -9,12 +9,21 @@
  */
 package com.hypherionmc.modfusioner.task;
 
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.actions.JarMergeAction;
-import com.hypherionmc.modfusioner.plugin.FusionerExtension;
-import com.hypherionmc.modfusioner.plugin.ModFusionerPlugin;
-import com.hypherionmc.modfusioner.utils.FileChecks;
-import com.hypherionmc.modfusioner.utils.FileTools;
+import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
+import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.rootProject;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 import org.gradle.api.internal.file.copy.CopyAction;
@@ -23,28 +32,24 @@ import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.rootProject;
+import com.hypherionmc.modfusioner.Constants;
+import com.hypherionmc.modfusioner.actions.JarMergeAction;
+import com.hypherionmc.modfusioner.plugin.FusionerExtension;
+import com.hypherionmc.modfusioner.plugin.ModFusionerPlugin;
+import com.hypherionmc.modfusioner.utils.FileChecks;
+import com.hypherionmc.modfusioner.utils.FileTools;
 
 /**
  * @author HypherionSA
  * The main task of the plugin
  */
-public class JarFuseTask extends Jar {
+public class FuseJar extends Jar {
 
     // Fixed values
     private final File mergedJar;
     private static final AtomicBoolean hasRun = new AtomicBoolean(false);
 
-    public JarFuseTask() {
+    public FuseJar() {
         // Set task default values from extension
         getArchiveBaseName().set(modFusionerExtension.getMergedJarName());
         getArchiveVersion().set(modFusionerExtension.getJarVersion());
