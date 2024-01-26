@@ -121,7 +121,7 @@ public class ModFusionerPlugin implements Plugin<Project> {
         if (!(task instanceof AbstractArchiveTask))
             return;
 
-        rootProject.task("prepareFuseTask" + project.getName()).dependsOn(task.getPath());
-        mainTask.get().dependsOn("prepareFuseTask" + project.getName());
+        rootProject.task("prepareFuseTask" + project.getPath().replace(":", "-")).dependsOn(task.getPath());
+        mainTask.get().dependsOn("prepareFuseTask" + project.getPath().replace(":", "-"));
     }
 }
