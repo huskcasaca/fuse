@@ -9,14 +9,15 @@
  */
 package com.hypherionmc.modfusioner.actions;
 
-import com.hypherionmc.jarmanager.JarManager;
-import com.hypherionmc.jarrelocator.Relocation;
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.plugin.FusionerExtension;
-import com.hypherionmc.modfusioner.utils.FileTools;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.apache.commons.io.FileUtils;
+import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.logger;
+import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
+import static com.hypherionmc.modfusioner.utils.FileTools.embeddedJars;
+import static com.hypherionmc.modfusioner.utils.FileTools.getAccessWideners;
+import static com.hypherionmc.modfusioner.utils.FileTools.getFirstDirectory;
+import static com.hypherionmc.modfusioner.utils.FileTools.getMixins;
+import static com.hypherionmc.modfusioner.utils.FileTools.getPlatformServices;
+import static com.hypherionmc.modfusioner.utils.FileTools.getRefmaps;
+import static com.hypherionmc.modfusioner.utils.FileTools.getTextFiles;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,9 +34,16 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.Deflater;
 
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.logger;
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
-import static com.hypherionmc.modfusioner.utils.FileTools.*;
+import org.apache.commons.io.FileUtils;
+
+import com.hypherionmc.jarmanager.JarManager;
+import com.hypherionmc.jarrelocator.Relocation;
+import com.hypherionmc.modfusioner.Constants;
+import com.hypherionmc.modfusioner.plugin.FusionerExtension;
+import com.hypherionmc.modfusioner.utils.FileTools;
+
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 /**
  * @author HypherionSA
@@ -286,7 +294,7 @@ public class JarMergeAction {
         File remappedJar = FileTools.createOrReCreateF(new File(tempDir, "tempCustomInMerging_" + name + ".jar"));
 
         List<Relocation> customRelocations = new ArrayList<>();
-        customRelocations.add(new Relocation(group, name + "." + group));
+//        customRelocations.add(new Relocation(group, name + "." + group));
         if (configuration.getRelocations() != null)
             customRelocations.addAll(configuration.getRelocations().entrySet().stream().map(entry -> new Relocation(entry.getKey(), entry.getValue())).collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 
