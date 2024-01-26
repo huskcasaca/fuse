@@ -298,27 +298,27 @@ public class JarMergeAction {
         if (configuration.getRelocations() != null)
             customRelocations.addAll(configuration.getRelocations().entrySet().stream().map(entry -> new Relocation(entry.getKey(), entry.getValue())).collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 
-        AtomicReference<String> architectury = new AtomicReference<>();
-        architectury.set(null);
-
-        JarFile jar = new JarFile(jarFile);
-        jar.stream().forEach(jarEntry -> {
-            if (jarEntry.isDirectory()) {
-                if (jarEntry.getName().startsWith("architectury_inject")) {
-                    architectury.set(jarEntry.getName());
-                }
-            } else {
-                String firstDirectory = getFirstDirectory(jarEntry.getName());
-                if (firstDirectory.startsWith("architectury_inject")) {
-                    architectury.set(firstDirectory);
-                }
-            }
-        });
-        jar.close();
-
-        if (architectury.get() != null) {
-            customRelocations.add(new Relocation(architectury.get(), name + "." + architectury.get()));
-        }
+//        AtomicReference<String> architectury = new AtomicReference<>();
+//        architectury.set(null);
+//
+//        JarFile jar = new JarFile(jarFile);
+//        jar.stream().forEach(jarEntry -> {
+//            if (jarEntry.isDirectory()) {
+//                if (jarEntry.getName().startsWith("architectury_inject")) {
+//                    architectury.set(jarEntry.getName());
+//                }
+//            } else {
+//                String firstDirectory = getFirstDirectory(jarEntry.getName());
+//                if (firstDirectory.startsWith("architectury_inject")) {
+//                    architectury.set(firstDirectory);
+//                }
+//            }
+//        });
+//        jar.close();
+//
+//        if (architectury.get() != null) {
+//            customRelocations.add(new Relocation(architectury.get(), name + "." + architectury.get()));
+//        }
 
         jarManager.remapJar(jarFile, remappedJar, customRelocations);
         customInputs.replace(configuration, jarFile, remappedJar);
