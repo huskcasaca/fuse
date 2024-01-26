@@ -19,10 +19,10 @@ import java.util.Set;
  */
 public class Constants {
 
-    public static final String TASK_GROUP = "modfusioner";
-    public static final String TASK_NAME = "fusejars";
-    public static final String EXTENSION_NAME = "fusioner";
-    public static final String MANIFEST_KEY = "ModFusioner-Version";
+    public static final String TASK_GROUP = "fuse";
+    public static final String TASK_NAME = "fuseJar";
+    public static final String EXTENSION_NAME = "fuseJar";
+    public static final String MANIFEST_KEY = "FuseJar-Version";
 
     public static Set<PosixFilePermission> filePerms = new HashSet<>();
 
