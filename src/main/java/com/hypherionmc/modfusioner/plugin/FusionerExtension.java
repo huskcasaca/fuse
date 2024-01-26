@@ -9,13 +9,17 @@
  */
 package com.hypherionmc.modfusioner.plugin;
 
-import groovy.lang.Closure;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.gradle.api.Project;
 
-import java.util.*;
+import groovy.lang.Closure;
+import lombok.Getter;
+import lombok.Setter;
 
 public class FusionerExtension {
 
@@ -259,8 +263,7 @@ public class FusionerExtension {
 
 		// The name of the gradle module that contains the custom code
 		@Getter @Setter
-		Project project;
-
+		Project source;
 
         // The file that will be used as the input
         @Getter @Setter
