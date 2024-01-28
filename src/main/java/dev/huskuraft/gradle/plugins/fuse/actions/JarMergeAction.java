@@ -1,12 +1,3 @@
-/*
- * This file is part of ModFusioner, licensed under the GNU Lesser General Public License v2.1.
- *
- * This project is based on, and contains code from https://github.com/PacifistMC/Forgix, licensed under the same license.
- * See their license here: https://github.com/PacifistMC/Forgix/blob/main/LICENSE
- *
- * Copyright HypherionSA and Contributors
- * Forgix Code Copyright by their contributors and Ran-Mewo
- */
 package dev.huskuraft.gradle.plugins.fuse.actions;
 
 import java.io.File;
@@ -36,11 +27,6 @@ import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-/**
- * @author HypherionSA
- * The main logic class of the plugin. This class is responsible for
- * extracting, remapping, de-duplicating and finally merging the input jars
- */
 @RequiredArgsConstructor(staticName = "of")
 public class JarMergeAction {
 

@@ -1,12 +1,3 @@
-/*
- * This file is part of ModFusioner, licensed under the GNU Lesser General Public License v2.1.
- *
- * This project is based on, and contains code from https://github.com/PacifistMC/Forgix, licensed under the same license.
- * See their license here: https://github.com/PacifistMC/Forgix/blob/main/LICENSE
- *
- * Copyright HypherionSA and Contributors
- * Forgix Code Copyright by their contributors and Ran-Mewo
- */
 package dev.huskuraft.gradle.plugins.fuse.utils;
 
 import static org.apache.commons.io.FileUtils.copyDirectory;
@@ -32,10 +23,6 @@ import org.gradle.api.Task;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * @author HypherionSA
- * Utility class to make working with files easier
- */
 public class FileTools {
 
     // Name of the META-INF directory inside the mods

@@ -1,12 +1,3 @@
-/*
- * This file is part of ModFusioner, licensed under the GNU Lesser General Public License v2.1.
- *
- * This project is based on, and contains code from https://github.com/PacifistMC/Forgix, licensed under the same license.
- * See their license here: https://github.com/PacifistMC/Forgix/blob/main/LICENSE
- *
- * Copyright HypherionSA and Contributors
- * Forgix Code Copyright by their contributors and Ran-Mewo
- */
 package dev.huskuraft.gradle.plugins.fuse.task;
 
 import java.io.File;
@@ -41,10 +32,6 @@ import groovy.lang.Closure;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * @author HypherionSA
- * The main task of the plugin
- */
 public class FuseJar extends Jar {
 
     // Fixed values

@@ -1,12 +1,3 @@
-/*
- * This file is part of ModFusioner, licensed under the GNU Lesser General Public License v2.1.
- *
- * This project is based on, and contains code from https://github.com/PacifistMC/Forgix, licensed under the same license.
- * See their license here: https://github.com/PacifistMC/Forgix/blob/main/LICENSE
- *
- * Copyright HypherionSA and Contributors
- * Forgix Code Copyright by their contributors and Ran-Mewo
- */
 package dev.huskuraft.gradle.plugins.fuse;
 
 import org.gradle.api.Plugin;
@@ -18,10 +9,6 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 
 import dev.huskuraft.gradle.plugins.fuse.task.FuseJar;
 
-/**
- * @author HypherionSA
- * Main Gradle Plugin Class
- */
 public class FusePlugin implements Plugin<Project> {
 
 //    public static Project rootProject;

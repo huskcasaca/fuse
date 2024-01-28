@@ -9,9 +9,6 @@ import org.gradle.api.tasks.Nested;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Custom project configuration
- */
 public class FuseConfiguration {
 
 	// The name of the gradle module that contains the custom code
