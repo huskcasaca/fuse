@@ -1,11 +1,10 @@
-package dev.huskuraft.gradle.plugins.fuse.actions;
+package dev.huskuraft.gradle.plugins.fuse.tasks;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +19,6 @@ import org.apache.commons.io.FileUtils;
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
 
-import dev.huskuraft.gradle.plugins.fuse.Constants;
 import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
 import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
@@ -28,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @RequiredArgsConstructor(staticName = "of")
-public class JarMergeAction {
+public class MergeJarAction {
 
     // File Inputs
     @Setter private File forgeInput;
@@ -165,10 +163,6 @@ public class JarMergeAction {
         // Repack the fully processed jars into a single jar
         FusePlugin.logger.lifecycle("Fusing jars into single jar");
         jarManager.remapAndPack(mergedTemp, outJar, relocations);
-
-        try {
-            Files.setPosixFilePermissions(outJar.toPath(), Constants.filePerms);
-        } catch (Exception ignored) {}
 
         return outJar;
     }
@@ -326,7 +320,7 @@ public class JarMergeAction {
     }
 
     /**
-     * Remap resource files from jar. Used to remove duplicate code from {@link JarMergeAction#remapResources(File, File, File)}
+     * Remap resource files from jar. Used to remove duplicate code from {@link MergeJarAction#remapResources(File, File, File)}
      * @param jar - The jar file being processed
      * @param identifier - The group identifier of the packages
      * @param workingDir - The processing directory

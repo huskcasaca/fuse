@@ -7,77 +7,29 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 
-import dev.huskuraft.gradle.plugins.fuse.task.FuseJar;
+import dev.huskuraft.gradle.plugins.fuse.tasks.FuseJar;
 
 public class FusePlugin implements Plugin<Project> {
 
-//    public static Project rootProject;
     public static Logger logger;
-//    public static FusionerExtension modFusionerExtension;
 
 	public static final String FUSE_JAR_TASK_NAME = "fuseJar";
+	public static final String FUSE_JAR_TASK_GROUP = "fuse";
 
     @Override
     public void apply(Project project) {
-        // We only want to apply the project to the Root project
-//        if (project != project.getRootProject())
-//            return;
-
-//        rootProject = project.getRootProject();
         logger = project.getLogger();
-
-        // Register the extension
-//        modFusionerExtension = project.getExtensions().create(Constants.EXTENSION_NAME, FusionerExtension.class);
-
-
 
         // Register the task
 		TaskProvider<FuseJar> task = project.getTasks().register(FUSE_JAR_TASK_NAME, FuseJar.class, fuse -> {
-			fuse.setGroup(Constants.TASK_GROUP);
+			fuse.setGroup(FUSE_JAR_TASK_GROUP);
 			fuse.setDescription("Merge multiple jars into a single jar, for multi mod loader projects");
 			fuse.getArchiveClassifier().set("all");
 		});
 //		project.getArtifacts().add(Constants.TASK_GROUP, project.getTasks().named(FUSE_JAR_TASK_NAME));
 
-
-
 		// Check for task dependencies and register them on the main task
 		project.allprojects(cc -> cc.afterEvaluate(ccc -> {
-//            if (modFusionerExtension.getForgeConfiguration() != null
-//                    && modFusionerExtension.getForgeConfiguration().inputTaskName != null
-//                    && !modFusionerExtension.getForgeConfiguration().inputTaskName.isEmpty()) {
-//                if (ccc.getName().equals(modFusionerExtension.getForgeConfiguration().getProjectName()))
-//                    resolveInputTasks(
-//                            ccc,
-//                            modFusionerExtension.getForgeConfiguration().getInputTaskName(),
-//                            modFusionerExtension.getForgeConfiguration().getProjectName(),
-//                            task
-//                    );
-//            }
-//
-//            if (modFusionerExtension.getFabricConfiguration() != null
-//                    && modFusionerExtension.getFabricConfiguration().inputTaskName != null
-//                    && !modFusionerExtension.getFabricConfiguration().inputTaskName.isEmpty()) {
-//                if (ccc.getName().equals(modFusionerExtension.getFabricConfiguration().getProjectName()))
-//                    resolveInputTasks(
-//                            ccc,
-//                            modFusionerExtension.getFabricConfiguration().getInputTaskName(),
-//                            modFusionerExtension.getFabricConfiguration().getProjectName(),
-//                            task
-//                    );
-//            }
-//
-//            if (modFusionerExtension.getQuiltConfiguration() != null
-//                    && modFusionerExtension.getQuiltConfiguration().inputTaskName != null
-//                    && !modFusionerExtension.getQuiltConfiguration().inputTaskName.isEmpty()) {
-//                if (ccc.getName().equals(modFusionerExtension.getQuiltConfiguration().getProjectName()))
-//                    resolveInputTasks(
-//                            ccc,
-//                            modFusionerExtension.getQuiltConfiguration().getInputTaskName(),
-//                            modFusionerExtension.getQuiltConfiguration().getProjectName(),
-//                            task
-//                    );
-//            }
 
 			if (task.get().getFuseConfigurations() != null && !task.get().getFuseConfigurations().isEmpty()) {
 				task.get().getFuseConfigurations().forEach(c -> {

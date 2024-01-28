@@ -1,4 +1,4 @@
-package dev.huskuraft.gradle.plugins.fuse.task;
+package dev.huskuraft.gradle.plugins.fuse.tasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,9 +22,7 @@ import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import dev.huskuraft.gradle.plugins.fuse.Constants;
 import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
-import dev.huskuraft.gradle.plugins.fuse.actions.JarMergeAction;
 import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileChecks;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
@@ -32,7 +30,7 @@ import groovy.lang.Closure;
 import lombok.Getter;
 import lombok.Setter;
 
-public class FuseJar extends Jar {
+public class FuseJar extends Jar implements FuseSpec {
 
     // Fixed values
     private final File mergedJar;
@@ -60,17 +58,6 @@ public class FuseJar extends Jar {
 	@Getter @Setter @Input
 	private String outputDirectory;
 
-//	// Forge Project Configuration
-//	@Getter @Setter
-//	FusionerExtension.ForgeConfiguration forgeConfiguration;
-//
-//	// Fabric Project Configuration
-//	@Getter @Setter
-//	FusionerExtension.FabricConfiguration fabricConfiguration;
-//
-//	// Quilt Project Configuration
-//	@Getter @Setter
-//	FusionerExtension.QuiltConfiguration quiltConfiguration;
 
 	// Custom Project Configurations
 	@Getter @Nested
@@ -135,38 +122,11 @@ public class FuseJar extends Jar {
         FusePlugin.logger.lifecycle("Start Fusing Jars");
 
         // Get settings from extension
-//        FusionerExtension.ForgeConfiguration forgeConfiguration = modFusionerExtension.getForgeConfiguration();
-//        FusionerExtension.FabricConfiguration fabricConfiguration = modFusionerExtension.getFabricConfiguration();
-//        FusionerExtension.QuiltConfiguration quiltConfiguration = modFusionerExtension.getQuiltConfiguration();
         List<FuseConfiguration> fuseConfigurations = getFuseConfigurations();
 
         // Try to resolve the projects specific in the extension config
-        Project forgeProject = null;
-        Project fabricProject = null;
-        Project quiltProject = null;
         Map<Project, FuseConfiguration> customProjects = new HashMap<>();
         List<Boolean> validation = new ArrayList<>();
-
-//        if (forgeConfiguration != null) {
-//            try {
-//                forgeProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(forgeConfiguration.getProjectName())).findFirst().get();
-//                validation.add(true);
-//            } catch (NoSuchElementException ignored) { }
-//        }
-//
-//        if (fabricConfiguration != null) {
-//            try {
-//                fabricProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(fabricConfiguration.getProjectName())).findFirst().get();
-//                validation.add(true);
-//            } catch (NoSuchElementException ignored) { }
-//        }
-//
-//        if (quiltConfiguration != null) {
-//            try {
-//                quiltProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(quiltConfiguration.getProjectName())).findFirst().get();
-//                validation.add(true);
-//            } catch (NoSuchElementException ignored) { }
-//        }
 
         if (fuseConfigurations != null) {
             for (FuseConfiguration customSettings : fuseConfigurations) {
@@ -191,18 +151,6 @@ public class FuseJar extends Jar {
         File quiltJar = null;
         Map<FuseConfiguration, File> customJars = new HashMap<>();
 
-//        if (forgeProject != null && forgeConfiguration != null) {
-//            forgeJar = getInputFile(forgeConfiguration.getInputFile(), forgeConfiguration.getInputTaskName(), forgeProject);
-//        }
-//
-//        if (fabricProject != null && fabricConfiguration != null) {
-//            fabricJar = getInputFile(fabricConfiguration.getInputFile(), fabricConfiguration.getInputTaskName(), fabricProject);
-//        }
-//
-//        if (quiltProject != null && quiltConfiguration != null) {
-//            quiltJar = getInputFile(quiltConfiguration.getInputFile(), quiltConfiguration.getInputTaskName(), quiltProject);
-//        }
-
         for (Map.Entry<Project, FuseConfiguration> entry : customProjects.entrySet()) {
             File f = getInputFile(entry.getValue().getInputFile(), entry.getValue().getInputTaskName(), entry.getKey());
             if (f != null)
@@ -214,7 +162,7 @@ public class FuseJar extends Jar {
         if (!mergedJar.getParentFile().exists()) mergedJar.getParentFile().mkdirs();
 
         // Set up the jar merge action
-        JarMergeAction mergeAction = JarMergeAction.of(
+        MergeJarAction mergeAction = MergeJarAction.of(
                 customJars,
                 getDuplicateRelocations(),
                 getGroupName(),
@@ -222,27 +170,11 @@ public class FuseJar extends Jar {
                 getArchiveFileName().get()
         );
 
-//        // Forge
-//        mergeAction.setForgeInput(forgeJar);
-//        mergeAction.setForgeRelocations(forgeConfiguration == null ? new HashMap<>() : forgeConfiguration.getRelocations());
-//        mergeAction.setForgeMixins(forgeConfiguration == null ? new ArrayList<>() : forgeConfiguration.getMixins());
-//
-//        // Fabric
-//        mergeAction.setFabricInput(fabricJar);
-//        mergeAction.setFabricRelocations(fabricConfiguration == null ? new HashMap<>() : fabricConfiguration.getRelocations());
-//
-//        // Quilt
-//        mergeAction.setQuiltInput(quiltJar);
-//        mergeAction.setQuiltRelocations(quiltConfiguration == null ? new HashMap<>() : quiltConfiguration.getRelocations());
-
         // Merge them jars
         Path tempMergedJarPath = mergeAction.mergeJars(false).toPath();
 
         // Move the merged jar to the specified output directory
         Files.move(tempMergedJarPath, mergedJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        try {
-            Files.setPosixFilePermissions(mergedJar.toPath(), Constants.filePerms);
-        } catch (UnsupportedOperationException | IOException | SecurityException ignored) { }
 
         // Cleanup
         mergeAction.clean();
@@ -303,7 +235,8 @@ public class FuseJar extends Jar {
 	/**
 	 * Set up custom project configurations
 	 */
-	public FuseConfiguration custom(Closure<FuseConfiguration> closure) {
+	@Override
+	public FuseConfiguration fuse(Closure<FuseConfiguration> closure) {
 		FuseConfiguration fuseConfiguration = new FuseConfiguration();
 		getProject().configure(fuseConfiguration, closure);
 
