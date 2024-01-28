@@ -93,8 +93,8 @@ public class ModFusionerPlugin implements Plugin<Project> {
 //                    );
 //            }
 
-			if (task.get().getCustomConfigurations() != null && !task.get().getCustomConfigurations().isEmpty()) {
-				task.get().getCustomConfigurations().forEach(c -> {
+			if (task.get().getFuseConfigurations() != null && !task.get().getFuseConfigurations().isEmpty()) {
+				task.get().getFuseConfigurations().forEach(c -> {
 					if (ccc.getPath().equals(project.project(c.getSource()).getPath()) && c.getInputTaskName() != null && !c.getInputTaskName().isEmpty())
 						resolveInputTasks(ccc, c.getInputTaskName(), c.getProjectName(), task);
 				});

@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hypherionmc.modfusioner.Constants;
 import com.hypherionmc.modfusioner.actions.JarMergeAction;
-import com.hypherionmc.modfusioner.plugin.FusionerExtension;
+import com.hypherionmc.modfusioner.plugin.FuseConfiguration;
 import com.hypherionmc.modfusioner.plugin.ModFusionerPlugin;
 import com.hypherionmc.modfusioner.utils.FileChecks;
 import com.hypherionmc.modfusioner.utils.FileTools;
@@ -88,7 +88,7 @@ public class FuseJar extends Jar {
 
 	// Custom Project Configurations
 	@Getter @Nested
-	private final List<FusionerExtension.CustomConfiguration> customConfigurations = new ArrayList<>();
+	private final List<FuseConfiguration> fuseConfigurations = new ArrayList<>();
 
 
 	public FuseJar() {
@@ -152,13 +152,13 @@ public class FuseJar extends Jar {
 //        FusionerExtension.ForgeConfiguration forgeConfiguration = modFusionerExtension.getForgeConfiguration();
 //        FusionerExtension.FabricConfiguration fabricConfiguration = modFusionerExtension.getFabricConfiguration();
 //        FusionerExtension.QuiltConfiguration quiltConfiguration = modFusionerExtension.getQuiltConfiguration();
-        List<FusionerExtension.CustomConfiguration> customConfigurations = getCustomConfigurations();
+        List<FuseConfiguration> fuseConfigurations = getFuseConfigurations();
 
         // Try to resolve the projects specific in the extension config
         Project forgeProject = null;
         Project fabricProject = null;
         Project quiltProject = null;
-        Map<Project, FusionerExtension.CustomConfiguration> customProjects = new HashMap<>();
+        Map<Project, FuseConfiguration> customProjects = new HashMap<>();
         List<Boolean> validation = new ArrayList<>();
 
 //        if (forgeConfiguration != null) {
@@ -182,8 +182,8 @@ public class FuseJar extends Jar {
 //            } catch (NoSuchElementException ignored) { }
 //        }
 
-        if (customConfigurations != null) {
-            for (FusionerExtension.CustomConfiguration customSettings : customConfigurations) {
+        if (fuseConfigurations != null) {
+            for (FuseConfiguration customSettings : fuseConfigurations) {
                 try {
                     customProjects.put(getProject().getAllprojects().stream().filter(p -> p.getPath().equals(getProject().project(customSettings.getSource()).getPath())).findFirst().get(), customSettings);
                     validation.add(true);
@@ -203,7 +203,7 @@ public class FuseJar extends Jar {
         File forgeJar = null;
         File fabricJar = null;
         File quiltJar = null;
-        Map<FusionerExtension.CustomConfiguration, File> customJars = new HashMap<>();
+        Map<FuseConfiguration, File> customJars = new HashMap<>();
 
 //        if (forgeProject != null && forgeConfiguration != null) {
 //            forgeJar = getInputFile(forgeConfiguration.getInputFile(), forgeConfiguration.getInputTaskName(), forgeProject);
@@ -217,7 +217,7 @@ public class FuseJar extends Jar {
 //            quiltJar = getInputFile(quiltConfiguration.getInputFile(), quiltConfiguration.getInputTaskName(), quiltProject);
 //        }
 
-        for (Map.Entry<Project, FusionerExtension.CustomConfiguration> entry : customProjects.entrySet()) {
+        for (Map.Entry<Project, FuseConfiguration> entry : customProjects.entrySet()) {
             File f = getInputFile(entry.getValue().getInputFile(), entry.getValue().getInputTaskName(), entry.getKey());
             if (f != null)
                 customJars.put(entry.getValue(), f);
@@ -317,14 +317,14 @@ public class FuseJar extends Jar {
 	/**
 	 * Set up custom project configurations
 	 */
-	public FusionerExtension.CustomConfiguration custom(Closure<FusionerExtension.CustomConfiguration> closure) {
-		FusionerExtension.CustomConfiguration customConfiguration = new FusionerExtension.CustomConfiguration();
-		getProject().configure(customConfiguration, closure);
+	public FuseConfiguration custom(Closure<FuseConfiguration> closure) {
+		FuseConfiguration fuseConfiguration = new FuseConfiguration();
+		getProject().configure(fuseConfiguration, closure);
 
-		if (customConfiguration.getProjectName() == null || customConfiguration.getProjectName().isEmpty()) {
+		if (fuseConfiguration.getProjectName() == null || fuseConfiguration.getProjectName().isEmpty()) {
 			throw new IllegalStateException("Custom project configurations need to specify a \"projectName\"");
 		}
-		customConfigurations.add(customConfiguration);
-		return customConfiguration;
+		fuseConfigurations.add(fuseConfiguration);
+		return fuseConfiguration;
 	}
 }

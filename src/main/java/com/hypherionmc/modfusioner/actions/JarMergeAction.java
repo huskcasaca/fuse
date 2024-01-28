@@ -38,7 +38,7 @@ import org.apache.commons.io.FileUtils;
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
 import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.plugin.FusionerExtension;
+import com.hypherionmc.modfusioner.plugin.FuseConfiguration;
 import com.hypherionmc.modfusioner.utils.FileTools;
 
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ public class JarMergeAction {
     @Setter private File forgeInput;
     @Setter private File fabricInput;
     @Setter private File quiltInput;
-    private final Map<FusionerExtension.CustomConfiguration, File> customInputs;
+    private final Map<FuseConfiguration, File> customInputs;
 
     // Relocations
     @Setter private Map<String, String> forgeRelocations;
@@ -67,7 +67,7 @@ public class JarMergeAction {
     @Setter private List<String> forgeMixins;
 
     // Custom
-    private Map<FusionerExtension.CustomConfiguration, Map<File, File>> customTemps;
+    private Map<FuseConfiguration, Map<File, File>> customTemps;
 
     // Relocations
     private final List<String> ignoredPackages;
@@ -169,7 +169,7 @@ public class JarMergeAction {
         FileTools.moveDirectory(fabricTemp, mergedTemp);
         FileTools.moveDirectory(quiltTemp, mergedTemp);
 
-        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+        for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
             for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
                 FileTools.moveDirectory(entry2.getValue(), mergedTemp);
             }
@@ -221,7 +221,7 @@ public class JarMergeAction {
         remapJar(fabricInput, "fabric", fabricRelocations);
         remapJar(quiltInput, "quilt", quiltRelocations);
 
-        for (Map.Entry<FusionerExtension.CustomConfiguration, File> entry : customInputs.entrySet()) {
+        for (Map.Entry<FuseConfiguration, File> entry : customInputs.entrySet()) {
             if (FileTools.exists(entry.getValue())) {
                 remapCustomJar(entry.getKey(), entry.getValue());
             }
@@ -288,7 +288,7 @@ public class JarMergeAction {
      * @param jarFile - The input jar of the custom project to be processed
      * @throws IOException - Thrown if an io exception occurs
      */
-    private void remapCustomJar(FusionerExtension.CustomConfiguration configuration, File jarFile) throws IOException {
+    private void remapCustomJar(FuseConfiguration configuration, File jarFile) throws IOException {
         String name = configuration.getProjectName();
         File remappedJar = FileTools.createOrReCreateF(new File(tempDir, "tempCustomInMerging_" + name + ".jar"));
 
@@ -444,7 +444,7 @@ public class JarMergeAction {
         if (FileTools.exists(quiltInput)) quiltManifest.read(fileInputStream = new FileInputStream(new File(quiltTemp, "META-INF/MANIFEST.MF")));
         if (fileInputStream != null) fileInputStream.close();
 
-        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+        for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
             for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
                 Manifest manifest = new Manifest();
                 if (FileTools.exists(entry2.getKey())) {
@@ -509,7 +509,7 @@ public class JarMergeAction {
         if (FileTools.exists(fabricInput)) new File(fabricTemp, "META-INF/MANIFEST.MF").delete();
         if (FileTools.exists(quiltInput)) new File(quiltTemp, "META-INF/MANIFEST.MF").delete();
 
-        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+        for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
             for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
                 if (FileTools.exists(entry2.getKey())) new File(entry2.getValue(), "META-INF/MANIFEST.MF").delete();
             }
@@ -550,7 +550,7 @@ public class JarMergeAction {
                     removeDuplicateRelocationResources.put("quilt/" + duplicatePath, duplicatePath);
                 }
 
-                for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+                for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
                     for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
                         if (FileTools.exists(entry2.getKey())) {
                             String name = entry.getKey().getProjectName();
