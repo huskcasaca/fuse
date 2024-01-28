@@ -25,84 +25,93 @@ import com.hypherionmc.modfusioner.task.FuseJar;
  */
 public class ModFusionerPlugin implements Plugin<Project> {
 
-    public static Project rootProject;
+//    public static Project rootProject;
     public static Logger logger;
-    public static FusionerExtension modFusionerExtension;
+//    public static FusionerExtension modFusionerExtension;
+
+	public static final String FUSE_JAR_TASK_NAME = "fuseJar";
 
     @Override
     public void apply(Project project) {
         // We only want to apply the project to the Root project
-        if (project != project.getRootProject())
-            return;
+//        if (project != project.getRootProject())
+//            return;
 
-        rootProject = project.getRootProject();
+//        rootProject = project.getRootProject();
         logger = project.getLogger();
 
         // Register the extension
-        modFusionerExtension = rootProject.getExtensions().create(Constants.EXTENSION_NAME, FusionerExtension.class);
+//        modFusionerExtension = project.getExtensions().create(Constants.EXTENSION_NAME, FusionerExtension.class);
+
+
 
         // Register the task
-        TaskProvider<FuseJar> task = rootProject.getTasks().register(Constants.TASK_NAME, FuseJar.class);
-        task.configure(fusioner -> {
-            fusioner.setGroup(Constants.TASK_GROUP);
-            fusioner.setDescription("Merge multiple jars into a single jar, for multi mod loader projects");
-        });
+		TaskProvider<FuseJar> task = project.getTasks().register(FUSE_JAR_TASK_NAME, FuseJar.class, fuse -> {
+			fuse.setGroup(Constants.TASK_GROUP);
+			fuse.setDescription("Merge multiple jars into a single jar, for multi mod loader projects");
+			fuse.getArchiveClassifier().set("all");
+		});
+//		project.getArtifacts().add(Constants.TASK_GROUP, project.getTasks().named(FUSE_JAR_TASK_NAME));
 
-        // Check for task dependencies and register them on the main task
-        project.allprojects(cc -> cc.afterEvaluate(ccc -> {
-            if (modFusionerExtension.getForgeConfiguration() != null
-                    && modFusionerExtension.getForgeConfiguration().inputTaskName != null
-                    && !modFusionerExtension.getForgeConfiguration().inputTaskName.isEmpty()) {
-                if (ccc.getName().equals(modFusionerExtension.getForgeConfiguration().getProjectName()))
-                    resolveInputTasks(
-                            ccc,
-                            modFusionerExtension.getForgeConfiguration().getInputTaskName(),
-                            modFusionerExtension.getForgeConfiguration().getProjectName(),
-                            task
-                    );
-            }
 
-            if (modFusionerExtension.getFabricConfiguration() != null
-                    && modFusionerExtension.getFabricConfiguration().inputTaskName != null
-                    && !modFusionerExtension.getFabricConfiguration().inputTaskName.isEmpty()) {
-                if (ccc.getName().equals(modFusionerExtension.getFabricConfiguration().getProjectName()))
-                    resolveInputTasks(
-                            ccc,
-                            modFusionerExtension.getFabricConfiguration().getInputTaskName(),
-                            modFusionerExtension.getFabricConfiguration().getProjectName(),
-                            task
-                    );
-            }
 
-            if (modFusionerExtension.getQuiltConfiguration() != null
-                    && modFusionerExtension.getQuiltConfiguration().inputTaskName != null
-                    && !modFusionerExtension.getQuiltConfiguration().inputTaskName.isEmpty()) {
-                if (ccc.getName().equals(modFusionerExtension.getQuiltConfiguration().getProjectName()))
-                    resolveInputTasks(
-                            ccc,
-                            modFusionerExtension.getQuiltConfiguration().getInputTaskName(),
-                            modFusionerExtension.getQuiltConfiguration().getProjectName(),
-                            task
-                    );
-            }
+		// Check for task dependencies and register them on the main task
+		project.allprojects(cc -> cc.afterEvaluate(ccc -> {
+//            if (modFusionerExtension.getForgeConfiguration() != null
+//                    && modFusionerExtension.getForgeConfiguration().inputTaskName != null
+//                    && !modFusionerExtension.getForgeConfiguration().inputTaskName.isEmpty()) {
+//                if (ccc.getName().equals(modFusionerExtension.getForgeConfiguration().getProjectName()))
+//                    resolveInputTasks(
+//                            ccc,
+//                            modFusionerExtension.getForgeConfiguration().getInputTaskName(),
+//                            modFusionerExtension.getForgeConfiguration().getProjectName(),
+//                            task
+//                    );
+//            }
+//
+//            if (modFusionerExtension.getFabricConfiguration() != null
+//                    && modFusionerExtension.getFabricConfiguration().inputTaskName != null
+//                    && !modFusionerExtension.getFabricConfiguration().inputTaskName.isEmpty()) {
+//                if (ccc.getName().equals(modFusionerExtension.getFabricConfiguration().getProjectName()))
+//                    resolveInputTasks(
+//                            ccc,
+//                            modFusionerExtension.getFabricConfiguration().getInputTaskName(),
+//                            modFusionerExtension.getFabricConfiguration().getProjectName(),
+//                            task
+//                    );
+//            }
+//
+//            if (modFusionerExtension.getQuiltConfiguration() != null
+//                    && modFusionerExtension.getQuiltConfiguration().inputTaskName != null
+//                    && !modFusionerExtension.getQuiltConfiguration().inputTaskName.isEmpty()) {
+//                if (ccc.getName().equals(modFusionerExtension.getQuiltConfiguration().getProjectName()))
+//                    resolveInputTasks(
+//                            ccc,
+//                            modFusionerExtension.getQuiltConfiguration().getInputTaskName(),
+//                            modFusionerExtension.getQuiltConfiguration().getProjectName(),
+//                            task
+//                    );
+//            }
 
-            if (modFusionerExtension.getCustomConfigurations() != null && !modFusionerExtension.getCustomConfigurations().isEmpty()) {
-                modFusionerExtension.getCustomConfigurations().forEach(c -> {
-                    if (ccc.getPath().equals(c.getSource().getPath()) && c.getInputTaskName() != null && !c.getInputTaskName().isEmpty())
-                        resolveInputTasks(ccc, c.getInputTaskName(), c.getProjectName(), task);
-                });
-            }
-        }));
+			if (task.get().getCustomConfigurations() != null && !task.get().getCustomConfigurations().isEmpty()) {
+				task.get().getCustomConfigurations().forEach(c -> {
+					if (ccc.getPath().equals(project.project(c.getSource()).getPath()) && c.getInputTaskName() != null && !c.getInputTaskName().isEmpty())
+						resolveInputTasks(ccc, c.getInputTaskName(), c.getProjectName(), task);
+				});
+			}
+		}));
+
     }
 
     /**
-     * Try to locate the correct task to run on the subproject
-     * @param project - Sub project being processed
-     * @param inTask - The name of the task that will be run
-     * @param inProject - The name of the project the task is on
-     * @param mainTask - The FuseJars task
-     */
-    private void resolveInputTasks(Project project, Object inTask, String inProject, TaskProvider<FuseJar> mainTask) {
+	 * Try to locate the correct task to run on the subproject
+	 *
+	 * @param targetProject - Sub project being processed
+	 * @param inTask        - The name of the task that will be run
+	 * @param inProject     - The name of the project the task is on
+	 * @param mainTask      - The FuseJars task
+	 */
+    private void resolveInputTasks(Project targetProject, Object inTask, String inProject, TaskProvider<FuseJar> mainTask) {
         if (inTask == null)
             return;
 
@@ -111,17 +120,17 @@ public class ModFusionerPlugin implements Plugin<Project> {
         if (inProject == null || inProject.isEmpty())
             return;
 
-        if (project == null)
+        if (targetProject == null)
             return;
 
         if (inTask instanceof String) {
-            task = project.getTasks().getByName((String) inTask);
+            task = targetProject.getTasks().getByName((String) inTask);
         }
 
         if (!(task instanceof AbstractArchiveTask))
             return;
 
-        rootProject.task("prepareFuseTask" + project.getPath().replace(":", "-")).dependsOn(task.getPath());
-        mainTask.get().dependsOn("prepareFuseTask" + project.getPath().replace(":", "-"));
+        ;
+        mainTask.get().dependsOn(targetProject.task("prepareFuseTask" + targetProject.getPath().replace(":", "-")).dependsOn(task.getPath()));
     }
 }

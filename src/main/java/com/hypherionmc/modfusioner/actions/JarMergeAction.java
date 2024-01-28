@@ -10,7 +10,6 @@
 package com.hypherionmc.modfusioner.actions;
 
 import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.logger;
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
 import static com.hypherionmc.modfusioner.utils.FileTools.embeddedJars;
 import static com.hypherionmc.modfusioner.utils.FileTools.getAccessWideners;
 import static com.hypherionmc.modfusioner.utils.FileTools.getFirstDirectory;
@@ -105,17 +104,17 @@ public class JarMergeAction {
             throw new IllegalArgumentException("No input jars were provided.");
         }
 
-        if (modFusionerExtension.getForgeConfiguration() != null && !FileTools.exists(forgeInput)) {
-            logger.warn("Forge jar does not exist! You can ignore this warning if you are not using forge");
-        }
-
-        if (modFusionerExtension.getFabricConfiguration() != null && !FileTools.exists(fabricInput)) {
-            logger.warn("Fabric jar does not exist! You can ignore this warning if you are not using fabric");
-        }
-
-        if (modFusionerExtension.getQuiltConfiguration() != null && !FileTools.exists(quiltInput)) {
-            logger.warn("Quilt jar does not exist! You can ignore this warning if you are not using quilt");
-        }
+//        if (modFusionerExtension.getForgeConfiguration() != null && !FileTools.exists(forgeInput)) {
+//            logger.warn("Forge jar does not exist! You can ignore this warning if you are not using forge");
+//        }
+//
+//        if (modFusionerExtension.getFabricConfiguration() != null && !FileTools.exists(fabricInput)) {
+//            logger.warn("Fabric jar does not exist! You can ignore this warning if you are not using fabric");
+//        }
+//
+//        if (modFusionerExtension.getQuiltConfiguration() != null && !FileTools.exists(quiltInput)) {
+//            logger.warn("Quilt jar does not exist! You can ignore this warning if you are not using quilt");
+//        }
 
         customInputs.forEach((key, value) -> {
             if (!FileTools.exists(value)) {

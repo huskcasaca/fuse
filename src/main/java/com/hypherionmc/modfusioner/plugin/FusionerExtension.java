@@ -15,9 +15,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.gradle.api.Project;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Nested;
 
-import groovy.lang.Closure;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,7 +26,7 @@ public class FusionerExtension {
     // Group, or package names that will be used for the final jar
     @Getter
     @Setter
-    String packageGroup;
+    String group;
 
     // The name of the final jar
     @Getter @Setter
@@ -64,28 +64,28 @@ public class FusionerExtension {
      * Main extension entry point
      */
     public FusionerExtension() {
-        if (packageGroup == null || packageGroup.isEmpty()) {
-            if (ModFusionerPlugin.rootProject.hasProperty("group") && ModFusionerPlugin.rootProject.property("group") != null) {
-                packageGroup = ModFusionerPlugin.rootProject.property("group").toString();
-            } else {
-                ModFusionerPlugin.logger.error("\"group\" is not defined and cannot be set automatically");
-            }
-        }
-
-        if (mergedJarName == null || mergedJarName.isEmpty()) {
-            mergedJarName = "MergedJar";
-        }
-
-        if (jarVersion != null && jarVersion.isEmpty()) {
-            if (ModFusionerPlugin.rootProject.hasProperty("version") && ModFusionerPlugin.rootProject.property("version") != null) {
-                jarVersion = ModFusionerPlugin.rootProject.property("version").toString();
-            } else {
-                jarVersion = "1.0";
-            }
-        }
-
-        if (outputDirectory == null || outputDirectory.isEmpty())
-            outputDirectory = "artifacts/fused";
+//        if (group == null || group.isEmpty()) {
+//            if (ModFusionerPlugin.rootProject.hasProperty("group") && ModFusionerPlugin.rootProject.property("group") != null) {
+//                group = ModFusionerPlugin.rootProject.property("group").toString();
+//            } else {
+//                ModFusionerPlugin.logger.error("\"group\" is not defined and cannot be set automatically");
+//            }
+//        }
+//
+//        if (mergedJarName == null || mergedJarName.isEmpty()) {
+//            mergedJarName = "MergedJar";
+//        }
+//
+//        if (jarVersion != null && jarVersion.isEmpty()) {
+//            if (ModFusionerPlugin.rootProject.hasProperty("version") && ModFusionerPlugin.rootProject.property("version") != null) {
+//                jarVersion = ModFusionerPlugin.rootProject.property("version").toString();
+//            } else {
+//                jarVersion = "1.0";
+//            }
+//        }
+//
+//        if (outputDirectory == null || outputDirectory.isEmpty())
+//            outputDirectory = "artifacts/fused";
     }
 
     /**
@@ -106,46 +106,46 @@ public class FusionerExtension {
         duplicateRelocations.addAll(duplicates);
     }
 
-    /**
-     * Set up the forge project configurations
-     */
-    public FusionerExtension.ForgeConfiguration forge(Closure<FusionerExtension.ForgeConfiguration> closure) {
-        forgeConfiguration = new FusionerExtension.ForgeConfiguration();
-        ModFusionerPlugin.rootProject.configure(forgeConfiguration, closure);
-        return forgeConfiguration;
-    }
-
-    /**
-     * Set up the fabric project configurations
-     */
-    public FusionerExtension.FabricConfiguration fabric(Closure<FusionerExtension.FabricConfiguration> closure) {
-        fabricConfiguration = new FusionerExtension.FabricConfiguration();
-        ModFusionerPlugin.rootProject.configure(fabricConfiguration, closure);
-        return fabricConfiguration;
-    }
-
-    /**
-     * Set up the quilt project configurations
-     */
-    public FusionerExtension.QuiltConfiguration quilt(Closure<FusionerExtension.QuiltConfiguration> closure) {
-        quiltConfiguration = new FusionerExtension.QuiltConfiguration();
-        ModFusionerPlugin.rootProject.configure(quiltConfiguration, closure);
-        return quiltConfiguration;
-    }
-
-    /**
-     * Set up custom project configurations
-     */
-    public FusionerExtension.CustomConfiguration custom(Closure<FusionerExtension.CustomConfiguration> closure) {
-        FusionerExtension.CustomConfiguration customConfiguration = new FusionerExtension.CustomConfiguration();
-        ModFusionerPlugin.rootProject.configure(customConfiguration, closure);
-
-        if (customConfiguration.getProjectName() == null || customConfiguration.getProjectName().isEmpty()) {
-            throw new IllegalStateException("Custom project configurations need to specify a \"projectName\"");
-        }
-        customConfigurations.add(customConfiguration);
-        return customConfiguration;
-    }
+//    /**
+//     * Set up the forge project configurations
+//     */
+//    public FusionerExtension.ForgeConfiguration forge(Closure<FusionerExtension.ForgeConfiguration> closure) {
+//        forgeConfiguration = new FusionerExtension.ForgeConfiguration();
+//        ModFusionerPlugin.rootProject.configure(forgeConfiguration, closure);
+//        return forgeConfiguration;
+//    }
+//
+//    /**
+//     * Set up the fabric project configurations
+//     */
+//    public FusionerExtension.FabricConfiguration fabric(Closure<FusionerExtension.FabricConfiguration> closure) {
+//        fabricConfiguration = new FusionerExtension.FabricConfiguration();
+//        ModFusionerPlugin.rootProject.configure(fabricConfiguration, closure);
+//        return fabricConfiguration;
+//    }
+//
+//    /**
+//     * Set up the quilt project configurations
+//     */
+//    public FusionerExtension.QuiltConfiguration quilt(Closure<FusionerExtension.QuiltConfiguration> closure) {
+//        quiltConfiguration = new FusionerExtension.QuiltConfiguration();
+//        ModFusionerPlugin.rootProject.configure(quiltConfiguration, closure);
+//        return quiltConfiguration;
+//    }
+//
+//    /**
+//     * Set up custom project configurations
+//     */
+//    public FusionerExtension.CustomConfiguration custom(Closure<FusionerExtension.CustomConfiguration> closure) {
+//        FusionerExtension.CustomConfiguration customConfiguration = new FusionerExtension.CustomConfiguration();
+//        ModFusionerPlugin.rootProject.configure(customConfiguration, closure);
+//
+//        if (customConfiguration.getProjectName() == null || customConfiguration.getProjectName().isEmpty()) {
+//            throw new IllegalStateException("Custom project configurations need to specify a \"projectName\"");
+//        }
+//        customConfigurations.add(customConfiguration);
+//        return customConfiguration;
+//    }
 
     /**
      * Forge Configuration Structure
@@ -258,23 +258,23 @@ public class FusionerExtension {
     public static class CustomConfiguration {
 
 		// The name of the gradle module that contains the custom code
-		@Getter @Setter
+		@Getter @Setter @Input
 		String projectName;
 
 		// The name of the gradle module that contains the custom code
-		@Getter @Setter
-		Project source;
+		@Getter @Setter @Input
+		String source;
 
         // The file that will be used as the input
-        @Getter @Setter
-        String inputFile;
+        @Getter @Setter @Input
+        String inputFile = "";
 
         // The name of the task to run to get the input file
-        @Getter @Setter
+        @Getter @Setter @Input
         String inputTaskName;
 
         // Packages that should be relocated, instead of duplicated
-        @Getter
+        @Getter @Nested
         Map<String, String> relocations = new HashMap<>();
 
         /**

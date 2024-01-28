@@ -9,9 +9,6 @@
  */
 package com.hypherionmc.modfusioner.task;
 
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.modFusionerExtension;
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.rootProject;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 import org.gradle.api.internal.file.copy.CopyAction;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.WorkResults;
 import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +38,10 @@ import com.hypherionmc.modfusioner.plugin.ModFusionerPlugin;
 import com.hypherionmc.modfusioner.utils.FileChecks;
 import com.hypherionmc.modfusioner.utils.FileTools;
 
+import groovy.lang.Closure;
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * @author HypherionSA
  * The main task of the plugin
@@ -49,11 +52,51 @@ public class FuseJar extends Jar {
     private final File mergedJar;
     private static final AtomicBoolean hasRun = new AtomicBoolean(false);
 
-    public FuseJar() {
+
+	// Group, or package names that will be used for the final jar
+	@Getter
+	@Setter  @Input
+	private String groupName;
+
+	// The name of the final jar
+	@Getter @Setter @Input
+	private String mergedJarName;
+
+	// The name of the final jar
+	@Getter @Setter  @Input
+	private String jarVersion;
+
+	// Duplicate packages that will be de-duplicated upon merge
+	@Getter @Nested
+	private List<String> duplicateRelocations;
+
+	// The output directory for the merged jar
+	@Getter @Setter @Input
+	private String outputDirectory;
+
+//	// Forge Project Configuration
+//	@Getter @Setter
+//	FusionerExtension.ForgeConfiguration forgeConfiguration;
+//
+//	// Fabric Project Configuration
+//	@Getter @Setter
+//	FusionerExtension.FabricConfiguration fabricConfiguration;
+//
+//	// Quilt Project Configuration
+//	@Getter @Setter
+//	FusionerExtension.QuiltConfiguration quiltConfiguration;
+
+	// Custom Project Configurations
+	@Getter @Nested
+	private final List<FusionerExtension.CustomConfiguration> customConfigurations = new ArrayList<>();
+
+
+	public FuseJar() {
+		fusionerExtension();
         // Set task default values from extension
-        getArchiveBaseName().set(modFusionerExtension.getMergedJarName());
-        getArchiveVersion().set(modFusionerExtension.getJarVersion());
-        getDestinationDirectory().set(getProject().file(modFusionerExtension.getOutputDirectory()));
+        getArchiveBaseName().set(getMergedJarName());
+        getArchiveVersion().set(getJarVersion());
+        getDestinationDirectory().set(getProject().file(getOutputDirectory()));
 
         // We don't allow custom input files, when the user defines their own task
         getInputs().files();
@@ -66,6 +109,36 @@ public class FuseJar extends Jar {
         getOutputs().file(mergedJar);
     }
 
+
+	void fusionerExtension() {
+		if (groupName == null || groupName.isEmpty()) {
+			// TODO: 28/1/24
+//			if (ModFusionerPlugin.rootProject.hasProperty("group") && ModFusionerPlugin.rootProject.property("group") != null) {
+//				group = ModFusionerPlugin.rootProject.property("group").toString();
+//			} else {
+//				ModFusionerPlugin.logger.error("\"group\" is not defined and cannot be set automatically");
+//			}
+		}
+
+		if (mergedJarName == null || mergedJarName.isEmpty()) {
+			mergedJarName = "MergedJar";
+		}
+
+		if (jarVersion != null && jarVersion.isEmpty()) {
+			// TODO: 28/1/24
+//			if (ModFusionerPlugin.rootProject.hasProperty("version") && ModFusionerPlugin.rootProject.property("version") != null) {
+//				jarVersion = ModFusionerPlugin.rootProject.property("version").toString();
+//			} else {
+//				jarVersion = "1.0";
+//			}
+		}
+
+		if (outputDirectory == null || outputDirectory.isEmpty())
+			outputDirectory = "artifacts/fused";
+
+		duplicateRelocations = new ArrayList<>();
+	}
+
     /**
      * Main task logic
      * @throws IOException - Thrown when an IO error occurs
@@ -76,11 +149,10 @@ public class FuseJar extends Jar {
         ModFusionerPlugin.logger.lifecycle("Start Fusing Jars");
 
         // Get settings from extension
-        FusionerExtension.ForgeConfiguration forgeConfiguration = modFusionerExtension.getForgeConfiguration();
-        FusionerExtension.FabricConfiguration fabricConfiguration = modFusionerExtension.getFabricConfiguration();
-        FusionerExtension.QuiltConfiguration quiltConfiguration = modFusionerExtension.getQuiltConfiguration();
-
-        List<FusionerExtension.CustomConfiguration> customConfigurations = modFusionerExtension.getCustomConfigurations();
+//        FusionerExtension.ForgeConfiguration forgeConfiguration = modFusionerExtension.getForgeConfiguration();
+//        FusionerExtension.FabricConfiguration fabricConfiguration = modFusionerExtension.getFabricConfiguration();
+//        FusionerExtension.QuiltConfiguration quiltConfiguration = modFusionerExtension.getQuiltConfiguration();
+        List<FusionerExtension.CustomConfiguration> customConfigurations = getCustomConfigurations();
 
         // Try to resolve the projects specific in the extension config
         Project forgeProject = null;
@@ -89,31 +161,31 @@ public class FuseJar extends Jar {
         Map<Project, FusionerExtension.CustomConfiguration> customProjects = new HashMap<>();
         List<Boolean> validation = new ArrayList<>();
 
-        if (forgeConfiguration != null) {
-            try {
-                forgeProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(forgeConfiguration.getProjectName())).findFirst().get();
-                validation.add(true);
-            } catch (NoSuchElementException ignored) { }
-        }
-
-        if (fabricConfiguration != null) {
-            try {
-                fabricProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(fabricConfiguration.getProjectName())).findFirst().get();
-                validation.add(true);
-            } catch (NoSuchElementException ignored) { }
-        }
-
-        if (quiltConfiguration != null) {
-            try {
-                quiltProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(quiltConfiguration.getProjectName())).findFirst().get();
-                validation.add(true);
-            } catch (NoSuchElementException ignored) { }
-        }
+//        if (forgeConfiguration != null) {
+//            try {
+//                forgeProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(forgeConfiguration.getProjectName())).findFirst().get();
+//                validation.add(true);
+//            } catch (NoSuchElementException ignored) { }
+//        }
+//
+//        if (fabricConfiguration != null) {
+//            try {
+//                fabricProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(fabricConfiguration.getProjectName())).findFirst().get();
+//                validation.add(true);
+//            } catch (NoSuchElementException ignored) { }
+//        }
+//
+//        if (quiltConfiguration != null) {
+//            try {
+//                quiltProject = rootProject.getAllprojects().stream().filter(p -> !p.getName().equals(rootProject.getName())).filter(p -> p.getName().equalsIgnoreCase(quiltConfiguration.getProjectName())).findFirst().get();
+//                validation.add(true);
+//            } catch (NoSuchElementException ignored) { }
+//        }
 
         if (customConfigurations != null) {
             for (FusionerExtension.CustomConfiguration customSettings : customConfigurations) {
                 try {
-                    customProjects.put(rootProject.getAllprojects().stream().filter(p -> p.getPath().equals(customSettings.getSource().getPath())).findFirst().get(), customSettings);
+                    customProjects.put(getProject().getAllprojects().stream().filter(p -> p.getPath().equals(getProject().project(customSettings.getSource()).getPath())).findFirst().get(), customSettings);
                     validation.add(true);
                 } catch (NoSuchElementException ignored) { }
             }
@@ -133,17 +205,17 @@ public class FuseJar extends Jar {
         File quiltJar = null;
         Map<FusionerExtension.CustomConfiguration, File> customJars = new HashMap<>();
 
-        if (forgeProject != null && forgeConfiguration != null) {
-            forgeJar = getInputFile(forgeConfiguration.getInputFile(), forgeConfiguration.getInputTaskName(), forgeProject);
-        }
-
-        if (fabricProject != null && fabricConfiguration != null) {
-            fabricJar = getInputFile(fabricConfiguration.getInputFile(), fabricConfiguration.getInputTaskName(), fabricProject);
-        }
-
-        if (quiltProject != null && quiltConfiguration != null) {
-            quiltJar = getInputFile(quiltConfiguration.getInputFile(), quiltConfiguration.getInputTaskName(), quiltProject);
-        }
+//        if (forgeProject != null && forgeConfiguration != null) {
+//            forgeJar = getInputFile(forgeConfiguration.getInputFile(), forgeConfiguration.getInputTaskName(), forgeProject);
+//        }
+//
+//        if (fabricProject != null && fabricConfiguration != null) {
+//            fabricJar = getInputFile(fabricConfiguration.getInputFile(), fabricConfiguration.getInputTaskName(), fabricProject);
+//        }
+//
+//        if (quiltProject != null && quiltConfiguration != null) {
+//            quiltJar = getInputFile(quiltConfiguration.getInputFile(), quiltConfiguration.getInputTaskName(), quiltProject);
+//        }
 
         for (Map.Entry<Project, FusionerExtension.CustomConfiguration> entry : customProjects.entrySet()) {
             File f = getInputFile(entry.getValue().getInputFile(), entry.getValue().getInputTaskName(), entry.getKey());
@@ -158,24 +230,24 @@ public class FuseJar extends Jar {
         // Set up the jar merge action
         JarMergeAction mergeAction = JarMergeAction.of(
                 customJars,
-                modFusionerExtension.getDuplicateRelocations(),
-                modFusionerExtension.getPackageGroup(),
-                new File(rootProject.getRootDir(), ".gradle" + File.separator + "fusioner"),
+                getDuplicateRelocations(),
+                getGroupName(),
+                new File(getTemporaryDir(), "fuseJar"),
                 getArchiveFileName().get()
         );
 
-        // Forge
-        mergeAction.setForgeInput(forgeJar);
-        mergeAction.setForgeRelocations(forgeConfiguration == null ? new HashMap<>() : forgeConfiguration.getRelocations());
-        mergeAction.setForgeMixins(forgeConfiguration == null ? new ArrayList<>() : forgeConfiguration.getMixins());
-
-        // Fabric
-        mergeAction.setFabricInput(fabricJar);
-        mergeAction.setFabricRelocations(fabricConfiguration == null ? new HashMap<>() : fabricConfiguration.getRelocations());
-
-        // Quilt
-        mergeAction.setQuiltInput(quiltJar);
-        mergeAction.setQuiltRelocations(quiltConfiguration == null ? new HashMap<>() : quiltConfiguration.getRelocations());
+//        // Forge
+//        mergeAction.setForgeInput(forgeJar);
+//        mergeAction.setForgeRelocations(forgeConfiguration == null ? new HashMap<>() : forgeConfiguration.getRelocations());
+//        mergeAction.setForgeMixins(forgeConfiguration == null ? new ArrayList<>() : forgeConfiguration.getMixins());
+//
+//        // Fabric
+//        mergeAction.setFabricInput(fabricJar);
+//        mergeAction.setFabricRelocations(fabricConfiguration == null ? new HashMap<>() : fabricConfiguration.getRelocations());
+//
+//        // Quilt
+//        mergeAction.setQuiltInput(quiltJar);
+//        mergeAction.setQuiltRelocations(quiltConfiguration == null ? new HashMap<>() : quiltConfiguration.getRelocations());
 
         // Merge them jars
         Path tempMergedJarPath = mergeAction.mergeJars(false).toPath();
@@ -240,4 +312,19 @@ public class FuseJar extends Jar {
 
         return null;
     }
+
+
+	/**
+	 * Set up custom project configurations
+	 */
+	public FusionerExtension.CustomConfiguration custom(Closure<FusionerExtension.CustomConfiguration> closure) {
+		FusionerExtension.CustomConfiguration customConfiguration = new FusionerExtension.CustomConfiguration();
+		getProject().configure(customConfiguration, closure);
+
+		if (customConfiguration.getProjectName() == null || customConfiguration.getProjectName().isEmpty()) {
+			throw new IllegalStateException("Custom project configurations need to specify a \"projectName\"");
+		}
+		customConfigurations.add(customConfiguration);
+		return customConfiguration;
+	}
 }
