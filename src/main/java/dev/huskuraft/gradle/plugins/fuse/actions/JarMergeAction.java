@@ -7,16 +7,7 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner.actions;
-
-import static com.hypherionmc.modfusioner.plugin.ModFusionerPlugin.logger;
-import static com.hypherionmc.modfusioner.utils.FileTools.embeddedJars;
-import static com.hypherionmc.modfusioner.utils.FileTools.getAccessWideners;
-import static com.hypherionmc.modfusioner.utils.FileTools.getFirstDirectory;
-import static com.hypherionmc.modfusioner.utils.FileTools.getMixins;
-import static com.hypherionmc.modfusioner.utils.FileTools.getPlatformServices;
-import static com.hypherionmc.modfusioner.utils.FileTools.getRefmaps;
-import static com.hypherionmc.modfusioner.utils.FileTools.getTextFiles;
+package dev.huskuraft.gradle.plugins.fuse.actions;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,10 +28,11 @@ import org.apache.commons.io.FileUtils;
 
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.plugin.FuseConfiguration;
-import com.hypherionmc.modfusioner.utils.FileTools;
 
+import dev.huskuraft.gradle.plugins.fuse.Constants;
+import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
+import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
+import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
@@ -96,7 +88,7 @@ public class JarMergeAction {
             outJar.delete();
         }
 
-        logger.lifecycle("Cleaning output Directory");
+        FusePlugin.logger.lifecycle("Cleaning output Directory");
         FileTools.createOrReCreate(tempDir);
 
         // Check if the required input files exists
@@ -118,7 +110,7 @@ public class JarMergeAction {
 
         customInputs.forEach((key, value) -> {
             if (!FileTools.exists(value)) {
-                logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
+                FusePlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
             }
         });
 
@@ -140,7 +132,7 @@ public class JarMergeAction {
         });
 
         // Extract the input jars to their processing directories
-        logger.lifecycle("Unpacking input jars");
+        FusePlugin.logger.lifecycle("Unpacking input jars");
 
         if (FileTools.exists(forgeInput)) {
             jarManager.unpackJar(forgeInput, forgeTemp);
@@ -176,7 +168,7 @@ public class JarMergeAction {
         }
 
         // Process duplicate packages and resources
-        logger.lifecycle("Processing duplicate packages and resources");
+        FusePlugin.logger.lifecycle("Processing duplicate packages and resources");
         processDuplicatePackages();
         removeDuplicatePackages(mergedTemp);
         removeDuplicateResources(mergedTemp);
@@ -185,7 +177,7 @@ public class JarMergeAction {
         FileUtils.deleteQuietly(outJar);
 
         // Repack the fully processed jars into a single jar
-        logger.lifecycle("Fusing jars into single jar");
+        FusePlugin.logger.lifecycle("Fusing jars into single jar");
         jarManager.remapAndPack(mergedTemp, outJar, relocations);
 
         try {
@@ -200,7 +192,7 @@ public class JarMergeAction {
      * @throws IOException - Thrown if an IO error occurs
      */
     public void clean() throws IOException {
-        logger.lifecycle("Finishing up");
+        FusePlugin.logger.lifecycle("Finishing up");
         FileUtils.deleteQuietly(tempDir);
     }
 
@@ -215,7 +207,7 @@ public class JarMergeAction {
      * @throws IOException - Thrown if an IO error occurs
      */
     public void remapJars() throws IOException {
-        logger.lifecycle("Start processing input jars");
+        FusePlugin.logger.lifecycle("Start processing input jars");
 
         remapJar(forgeInput, "forge", forgeRelocations);
         remapJar(fabricInput, "fabric", fabricRelocations);
@@ -254,7 +246,7 @@ public class JarMergeAction {
                         architectury.set(jarEntry.getName());
                     }
                 } else {
-                    String firstDirectory = getFirstDirectory(jarEntry.getName());
+                    String firstDirectory = FileTools.getFirstDirectory(jarEntry.getName());
                     if (firstDirectory.startsWith("architectury_inject")) {
                         architectury.set(firstDirectory);
                     }
@@ -331,7 +323,7 @@ public class JarMergeAction {
      * @throws IOException - Thrown if an IO error occurs
      */
     private void remapResources(File forgeTemps, File fabricTemps, File quiltTemps) throws IOException {
-        logger.lifecycle("Start Remapping Resources");
+        FusePlugin.logger.lifecycle("Start Remapping Resources");
 //        remapJarResources(forgeInput, "forge", forgeTemps, forgeRelocations);
 //        remapJarResources(fabricInput, "fabric", fabricTemps, fabricRelocations);
 //        remapJarResources(quiltInput, "quilt", quiltTemps, quiltRelocations);
@@ -360,13 +352,13 @@ public class JarMergeAction {
             return;
 
         if (relocations == null) relocations = new HashMap<>();
-        for (File file : embeddedJars(workingDir)) {
+        for (File file : FileTools.embeddedJars(workingDir)) {
             File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
             relocations.put(file.getName(), remappedFile.getName());
             file.renameTo(remappedFile);
         }
 
-        for (File file : getPlatformServices(workingDir, group)) {
+        for (File file : FileTools.getPlatformServices(workingDir, group)) {
             File remappedFile = new File(file.getParentFile(), identifier + "." + file.getName());
             relocations.put(file.getName(), remappedFile.getName());
             file.renameTo(remappedFile);
@@ -375,7 +367,7 @@ public class JarMergeAction {
         if (identifier.equalsIgnoreCase("forge"))
             forgeMixins = new ArrayList<>();
 
-        for (File file : getMixins(workingDir, !identifier.equalsIgnoreCase("forge"))) {
+        for (File file : FileTools.getMixins(workingDir, !identifier.equalsIgnoreCase("forge"))) {
             File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
             relocations.put(file.getName(), remappedFile.getName());
             file.renameTo(remappedFile);
@@ -385,14 +377,14 @@ public class JarMergeAction {
         }
 
         if (!identifier.equalsIgnoreCase("forge")) {
-            for (File file : getAccessWideners(workingDir)) {
+            for (File file : FileTools.getAccessWideners(workingDir)) {
                 File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
                 relocations.put(file.getName(), remappedFile.getName());
                 file.renameTo(remappedFile);
             }
         }
 
-        for (File file : getRefmaps(workingDir)) {
+        for (File file : FileTools.getRefmaps(workingDir)) {
             File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
             relocations.put(file.getName(), remappedFile.getName());
             file.renameTo(remappedFile);
@@ -401,7 +393,7 @@ public class JarMergeAction {
         relocations.put(group, identifier + "." + group);
         relocations.put(group.replace(".", "/"), identifier + "/" + group.replace(".", "/"));
 
-        for (File file : getTextFiles(workingDir)) {
+        for (File file : FileTools.getTextFiles(workingDir)) {
             List<String> lines = FileUtils.readLines(file, StandardCharsets.UTF_8);
             StringBuilder sb = new StringBuilder();
 
@@ -493,11 +485,11 @@ public class JarMergeAction {
         remapResources(forgeTemp, fabricTemp, quiltTemp);
 
         if (this.forgeMixins != null && mergedManifest.getMainAttributes().getValue("MixinConfigs") == null) {
-            logger.debug("Couldn't detect forge mixins. You can ignore this if you are not using mixins with forge.\n" +
+            FusePlugin.logger.debug("Couldn't detect forge mixins. You can ignore this if you are not using mixins with forge.\n" +
                     "If this is an issue then you can configure mixins manually\n" +
                     "Though we'll try to detect them automatically.\n");
             if (!forgeMixins.isEmpty()) {
-                logger.debug("Detected forge mixins: " + String.join(",", this.forgeMixins) + "\n");
+                FusePlugin.logger.debug("Detected forge mixins: " + String.join(",", this.forgeMixins) + "\n");
                 mergedManifest.getMainAttributes().putValue("MixinConfigs", String.join(",", this.forgeMixins));
             }
         }
@@ -591,7 +583,7 @@ public class JarMergeAction {
      */
     public void removeDuplicateResources(File mergedTemps) throws IOException {
         if (ignoredPackages != null) {
-            for (File file : getTextFiles(mergedTemps)) {
+            for (File file : FileTools.getTextFiles(mergedTemps)) {
                 List<String> lines = FileUtils.readLines(file, StandardCharsets.UTF_8);
                 StringBuilder sb = new StringBuilder();
 

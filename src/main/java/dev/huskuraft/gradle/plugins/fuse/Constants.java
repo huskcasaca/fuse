@@ -7,7 +7,7 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner;
+package dev.huskuraft.gradle.plugins.fuse;
 
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;

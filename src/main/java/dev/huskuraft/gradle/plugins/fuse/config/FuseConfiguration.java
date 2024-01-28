@@ -1,4 +1,4 @@
-package com.hypherionmc.modfusioner.plugin;
+package dev.huskuraft.gradle.plugins.fuse.config;
 
 import java.util.HashMap;
 import java.util.Map;

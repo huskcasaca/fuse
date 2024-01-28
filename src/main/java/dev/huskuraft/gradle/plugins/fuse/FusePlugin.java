@@ -7,7 +7,7 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner.plugin;
+package dev.huskuraft.gradle.plugins.fuse;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -16,14 +16,13 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.task.FuseJar;
+import dev.huskuraft.gradle.plugins.fuse.task.FuseJar;
 
 /**
  * @author HypherionSA
  * Main Gradle Plugin Class
  */
-public class ModFusionerPlugin implements Plugin<Project> {
+public class FusePlugin implements Plugin<Project> {
 
 //    public static Project rootProject;
     public static Logger logger;

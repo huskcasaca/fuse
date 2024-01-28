@@ -7,14 +7,11 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner.utils;
+package dev.huskuraft.gradle.plugins.fuse.utils;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.gradle.api.Project;
-import org.gradle.api.Task;
-import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.commons.io.FileUtils.copyDirectory;
+import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,7 +25,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 
-import static org.apache.commons.io.FileUtils.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author HypherionSA

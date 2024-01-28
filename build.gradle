@@ -8,15 +8,14 @@ plugins {
 }
 apply plugin: 'maven-publish'
 
-group = 'com.hypherionmc.modutils'
-version = "${version_base}.${version_patch}"
-description = "Gradle plugin to merge multiloader/architectury multiplatform mods into a single jar file"
-archivesBaseName = 'ModFusioner'
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+group = 'dev.huskuraft.fuse'
+version = plugin_version
+description = "Gradle plugin to merge multiple jars into a single one"
 
-if (System.getenv('BUILD_NUMBER') != null) {
-    version = "${version_base}." + System.getenv('BUILD_NUMBER')
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 configurations {
@@ -58,22 +57,15 @@ shadowJar {
 
 gradlePlugin {
     plugins {
-        modFusionerPlugin {
-            id = 'com.hypherionmc.modutils.modfusioner'
+        fusePlugin {
+            id = 'dev.huskuraft.fuse'
             description = project.description
-            displayName = 'ModFusioner'
+            displayName = 'FuseJar'
             version = project.version
-            implementationClass = "com.hypherionmc.modfusioner.plugin.ModFusionerPlugin"
+            implementationClass = "dev.huskuraft.gradle.plugins.fuse.FusePlugin"
         }
     }
 }
-
-//pluginBundle {
-//    website = 'https://github.com/firstdarkdev/modfusioner'
-//    vcsUrl = 'https://github.com/firstdarkdev/modfusioner'
-//    description = 'Gradle plugin to merge multiloader/architectury multiplatform mods into a single jar file'
-//    tags = ['minecraft', 'forge', 'fabric', 'quilt', 'merge', 'mod']
-//}
 
 jar {
     manifest {

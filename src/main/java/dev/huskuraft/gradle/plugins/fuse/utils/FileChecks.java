@@ -7,13 +7,13 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner.utils;
-
-import org.jetbrains.annotations.NotNull;
+package dev.huskuraft.gradle.plugins.fuse.utils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author HypherionSA

@@ -7,7 +7,7 @@
  * Copyright HypherionSA and Contributors
  * Forgix Code Copyright by their contributors and Ran-Mewo
  */
-package com.hypherionmc.modfusioner.task;
+package dev.huskuraft.gradle.plugins.fuse.task;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,13 +31,12 @@ import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.hypherionmc.modfusioner.Constants;
-import com.hypherionmc.modfusioner.actions.JarMergeAction;
-import com.hypherionmc.modfusioner.plugin.FuseConfiguration;
-import com.hypherionmc.modfusioner.plugin.ModFusionerPlugin;
-import com.hypherionmc.modfusioner.utils.FileChecks;
-import com.hypherionmc.modfusioner.utils.FileTools;
-
+import dev.huskuraft.gradle.plugins.fuse.Constants;
+import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
+import dev.huskuraft.gradle.plugins.fuse.actions.JarMergeAction;
+import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
+import dev.huskuraft.gradle.plugins.fuse.utils.FileChecks;
+import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import groovy.lang.Closure;
 import lombok.Getter;
 import lombok.Setter;
@@ -146,7 +145,7 @@ public class FuseJar extends Jar {
     void fuseJars() throws IOException {
         long time = System.currentTimeMillis();
 
-        ModFusionerPlugin.logger.lifecycle("Start Fusing Jars");
+        FusePlugin.logger.lifecycle("Start Fusing Jars");
 
         // Get settings from extension
 //        FusionerExtension.ForgeConfiguration forgeConfiguration = modFusionerExtension.getForgeConfiguration();
@@ -193,8 +192,8 @@ public class FuseJar extends Jar {
 
         // Check that at least 2 projects are defined
         if (validation.size() < 2) {
-            if (validation.size() == 1) ModFusionerPlugin.logger.error("Only one project was found. Skipping fusejars task.");
-            if (validation.size() == 0) ModFusionerPlugin.logger.error("No projects were found. Skipping fusejars task.");
+            if (validation.size() == 1) FusePlugin.logger.error("Only one project was found. Skipping fusejars task.");
+            if (validation.size() == 0) FusePlugin.logger.error("No projects were found. Skipping fusejars task.");
             return;
         }
         validation.clear();
@@ -261,7 +260,7 @@ public class FuseJar extends Jar {
         // Cleanup
         mergeAction.clean();
 
-        ModFusionerPlugin.logger.lifecycle("Fused jar created in " + (System.currentTimeMillis() - time) / 1000.0 + " seconds.");
+        FusePlugin.logger.lifecycle("Fused jar created in " + (System.currentTimeMillis() - time) / 1000.0 + " seconds.");
         hasRun.set(true);
     }
 
