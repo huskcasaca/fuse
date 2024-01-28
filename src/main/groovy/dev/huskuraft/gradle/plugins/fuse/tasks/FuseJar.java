@@ -69,7 +69,7 @@ public class FuseJar extends Jar implements FuseSpec {
         Map<FuseConfiguration, File> customJars = new HashMap<>();
 
         for (Map.Entry<Project, FuseConfiguration> entry : customProjects.entrySet()) {
-            File f = getInputFile(entry.getValue().getInputFile(), entry.getValue().getInputTaskName(), entry.getKey());
+            File f = getInputFile(entry.getValue().getInputTaskName(), entry.getKey());
             if (f != null)
                 customJars.put(entry.getValue(), f);
         }
@@ -85,15 +85,12 @@ public class FuseJar extends Jar implements FuseSpec {
     /**
      * Try to determine the input jar of a project
      *
-     * @param jarLocation - The user defined jar location
      * @param inProject   - The project the file should be for or from
      * @return - The jar file or null
      */
     @Nullable
-    private File getInputFile(@Nullable String jarLocation, String inputTaskName, Project inProject) {
-        if (jarLocation != null && !jarLocation.isEmpty()) {
-            return new File(inProject.getProjectDir(), jarLocation);
-        } else if (inputTaskName != null && !inputTaskName.isEmpty()) {
+    private File getInputFile(String inputTaskName, Project inProject) {
+        if (inputTaskName != null && !inputTaskName.isEmpty()) {
             return FileTools.resolveFile(inProject, inputTaskName);
         } else {
             int i = 0;

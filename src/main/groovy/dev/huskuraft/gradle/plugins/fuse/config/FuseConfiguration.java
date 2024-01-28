@@ -22,12 +22,6 @@ public class FuseConfiguration {
     @Input
     String source;
 
-    // The file that will be used as the input
-    @Getter
-    @Setter
-    @Input
-    String inputFile = "";
-
     // The name of the task to run to get the input file
     @Getter
     @Setter
