@@ -1,10 +1,10 @@
 package dev.huskuraft.gradle.plugins.fuse.utils;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author HypherionSA
@@ -14,6 +14,7 @@ public class FileChecks {
 
     /**
      * Try to determine if a file is a binary or text file
+     *
      * @param file - The file to test
      * @return - True if binary
      */
@@ -37,6 +38,7 @@ public class FileChecks {
 
     /**
      * Test to see if input file is a ZIP file
+     *
      * @param file - The file to test
      * @return - True if zip
      */

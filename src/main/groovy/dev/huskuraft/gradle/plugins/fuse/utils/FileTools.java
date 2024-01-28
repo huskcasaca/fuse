@@ -1,8 +1,11 @@
 package dev.huskuraft.gradle.plugins.fuse.utils;
 
-import static org.apache.commons.io.FileUtils.copyDirectory;
-import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.commons.io.FileUtils.deleteDirectory;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,12 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.gradle.api.Project;
-import org.gradle.api.Task;
-import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-import org.jetbrains.annotations.NotNull;
+import static org.apache.commons.io.FileUtils.*;
 
 public class FileTools {
 
@@ -39,6 +37,7 @@ public class FileTools {
 
     /**
      * Test to see if input file is not null, and exists on the drive
+     *
      * @param file - The file to test
      * @return - True if not null and exists on drive
      */
@@ -48,6 +47,7 @@ public class FileTools {
 
     /**
      * Create a directory if it doesn't exist
+     *
      * @param file - The directory to create
      * @return - The "now existent" directory
      */
@@ -60,8 +60,9 @@ public class FileTools {
 
     /**
      * Move a directory from one location to another
+     *
      * @param sourceDir - The directory to copy from
-     * @param outDir - The directory to copy to
+     * @param outDir    - The directory to copy to
      * @throws IOException - Thrown if an IO error occurs
      */
     public static void moveDirectory(File sourceDir, File outDir) throws IOException {
@@ -87,7 +88,8 @@ public class FileTools {
 
     /**
      * Copied from Apache Commons, with the "Directory Must Not Exist" check removed
-     * @param srcDir - The source directory
+     *
+     * @param srcDir  - The source directory
      * @param destDir - The destination directory
      * @throws IOException - Thrown if an IO error occurs
      */
@@ -110,8 +112,9 @@ public class FileTools {
 
     /**
      * Copied from Apache Commons, with the "File Must Not Exist" check removed
-     * @param srcFile - The source file
-     * @param destFile - The destination file
+     *
+     * @param srcFile     - The source file
+     * @param destFile    - The destination file
      * @param copyOptions - {@link StandardCopyOption} to be used with the move process
      * @throws IOException - Thrown if an IO error occurs
      */
@@ -132,7 +135,8 @@ public class FileTools {
 
     /**
      * Check that input values are not null and that the source file/directory exists
-     * @param source - The source file/directory
+     *
+     * @param source      - The source file/directory
      * @param destination - The destination file/directory
      * @throws FileNotFoundException - Thrown if the source file/directory does not exist
      */
@@ -146,8 +150,9 @@ public class FileTools {
 
     /**
      * Check if the source input is a directory
+     *
      * @param directory - The source directory
-     * @param name - Identifier for the error message
+     * @param name      - Identifier for the error message
      * @return - Return the directory if it's valid
      */
     private static File requireDirectory(final File directory, final String name) {
@@ -160,6 +165,7 @@ public class FileTools {
 
     /**
      * Check if the source input is not a directory
+     *
      * @param file - The source file
      * @param name - Identifier for the error message
      * @return - Return the file if it's valid
@@ -174,6 +180,7 @@ public class FileTools {
 
     /**
      * Get a list of embedded jar files from the input jar
+     *
      * @param dir - The directory the jar was extracted to
      * @return - List of embedded jars
      */
@@ -213,6 +220,7 @@ public class FileTools {
 
     /**
      * Get all text files from the input jar
+     *
      * @param dir - The directory the jar was extracted to
      * @return - List of text files
      */
@@ -239,7 +247,8 @@ public class FileTools {
 
     /**
      * Get a list of mixin configurations from the input jar
-     * @param dir - The directory the jar was extracted to
+     *
+     * @param dir            - The directory the jar was extracted to
      * @param includeRefmaps - Should reference maps be included in the search
      * @return - List of mixin configs and optionally refmaps
      * @throws IOException - Thrown when an IO error occurs
@@ -271,6 +280,7 @@ public class FileTools {
 
     /**
      * Get a list of refmaps from input jar
+     *
      * @param dir - The directory the jar was extracted to
      * @return - A list of mixin refmaps
      * @throws IOException - Thrown when an IO error occurs
@@ -293,6 +303,7 @@ public class FileTools {
 
     /**
      * Get a list of accesswideners from the input jar
+     *
      * @param dir - The directory the jar was extracted to
      * @return - A list of access wideners
      * @throws IOException - Thrown when an IO error occurs
@@ -323,7 +334,8 @@ public class FileTools {
 
     /**
      * Get a list of platform services from the input jar
-     * @param dir - The directory the jar was extracted to
+     *
+     * @param dir   - The directory the jar was extracted to
      * @param group - The group to search for
      * @return - A list of service files
      */
@@ -349,6 +361,7 @@ public class FileTools {
 
     /**
      * Get the first directory from a file name
+     *
      * @param fileName - The input file name
      * @return - The name of the first directory specified in the file name
      */
@@ -367,6 +380,7 @@ public class FileTools {
 
     /**
      * Create a directory if it doesn't exist, or delete and recreate it if it does
+     *
      * @param dir - The input directory
      * @return - The new directory
      * @throws IOException - Thrown when an IO exception occurs
@@ -385,6 +399,7 @@ public class FileTools {
 
     /**
      * Create a file if it doesn't exist, or delete and recreate it if it does
+     *
      * @param dir - The input directory
      * @return - The new file
      * @throws IOException - Thrown when an IO error occurs
@@ -409,7 +424,7 @@ public class FileTools {
         if (obj instanceof String) {
             Task t = project.getTasks().getByName((String) obj);
             if (t instanceof AbstractArchiveTask)
-                return ((AbstractArchiveTask)t).getArchiveFile().get().getAsFile();
+                return ((AbstractArchiveTask) t).getArchiveFile().get().getAsFile();
         }
 
         if (obj instanceof File) {
@@ -417,7 +432,7 @@ public class FileTools {
         }
 
         if (obj instanceof AbstractArchiveTask) {
-            return ((AbstractArchiveTask)obj).getArchiveFile().get().getAsFile();
+            return ((AbstractArchiveTask) obj).getArchiveFile().get().getAsFile();
         }
         return project.file(obj);
     }

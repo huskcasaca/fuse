@@ -1,5 +1,17 @@
 package dev.huskuraft.gradle.plugins.fuse.tasks;
 
+import com.hypherionmc.jarmanager.JarManager;
+import com.hypherionmc.jarrelocator.Relocation;
+import dev.huskuraft.gradle.plugins.fuse.FuseJavaPlugin;
+import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
+import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
+import org.gradle.api.internal.file.copy.CopyAction;
+import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
+import org.gradle.api.tasks.WorkResult;
+import org.gradle.api.tasks.WorkResults;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -14,131 +26,115 @@ import java.util.Map;
 import java.util.jar.Manifest;
 import java.util.zip.Deflater;
 
-import org.apache.commons.io.FileUtils;
-import org.gradle.api.internal.file.copy.CopyAction;
-import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
-import org.gradle.api.tasks.WorkResult;
-import org.gradle.api.tasks.WorkResults;
-
-import com.hypherionmc.jarmanager.JarManager;
-import com.hypherionmc.jarrelocator.Relocation;
-
-import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
-import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
-import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
-import lombok.RequiredArgsConstructor;
-
 @RequiredArgsConstructor(staticName = "of")
 class MergeJarAction implements CopyAction {
 
     private final Map<FuseConfiguration, File> customInputs;
-
-    // Custom
-    private Map<FuseConfiguration, Map<File, File>> customTemps;
-
     // Relocations
     private final List<String> ignoredPackages;
     private final Map<String, String> ignoredDuplicateRelocations = new HashMap<>();
     private final Map<String, String> removeDuplicateRelocationResources = new HashMap<>();
     private final List<Relocation> relocations = new ArrayList<>();
     private final JarManager jarManager = JarManager.getInstance();
-
-
     // Settings
     private final File tempDir;
     private final File jarFile;
+    // Custom
+    private Map<FuseConfiguration, Map<File, File>> customTemps;
 
-	/**
-	 * Start the merge process
-	 * @return - The fully merged jar file
+    /**
+     * Start the merge process
+     *
+     * @return - The fully merged jar file
      */
 
-	@Override
-	public WorkResult execute(CopyActionProcessingStream stream) {
-		try {
-			merge();
-			clean();
-		} catch (IOException e) {
-			return WorkResults.didWork(false);
-		}
+    @Override
+    public WorkResult execute(CopyActionProcessingStream stream) {
+        try {
+            merge();
+            clean();
+        } catch (IOException e) {
+            return WorkResults.didWork(false);
+        }
         return WorkResults.didWork(true);
-	}
+    }
 
-	public void merge() throws IOException {
+    public void merge() throws IOException {
 
-		jarManager.setCompressionLevel(Deflater.BEST_COMPRESSION);
-		File outJar = new File(tempDir, jarFile.getName());
+        jarManager.setCompressionLevel(Deflater.BEST_COMPRESSION);
+        File outJar = new File(tempDir, jarFile.getName());
 
-		FusePlugin.logger.lifecycle("Cleaning output Directory");
-		FileTools.createOrReCreate(tempDir);
+        FuseJavaPlugin.logger.lifecycle("Cleaning output Directory");
+        FileTools.createOrReCreate(tempDir);
 
-		// Check if the required input files exists
-		if (customInputs.isEmpty()) {
-			throw new IllegalArgumentException("No input jars were provided.");
-		}
-		customInputs.forEach((key, value) -> {
-			if (!FileTools.exists(value)) {
-				FusePlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
-			}
-		});
+        // Check if the required input files exists
+        if (customInputs.isEmpty()) {
+            throw new IllegalArgumentException("No input jars were provided.");
+        }
+        customInputs.forEach((key, value) -> {
+            if (!FileTools.exists(value)) {
+                FuseJavaPlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
+            }
+        });
 
-		// Remap the jar files to match their platform name
-		remapJars();
+        // Remap the jar files to match their platform name
+        remapJars();
 
-		customTemps = new HashMap<>();
-		customInputs.forEach((key, value) -> {
-			Map<File, File> temp = new HashMap<>();
+        customTemps = new HashMap<>();
+        customInputs.forEach((key, value) -> {
+            Map<File, File> temp = new HashMap<>();
 
-			temp.put(value, new File(tempDir, key.getProjectName() + "-temp"));
-			FileTools.getOrCreate(new File(tempDir, key.getProjectName() + "-temp"));
-			customTemps.put(key, temp);
-		});
+            temp.put(value, new File(tempDir, key.getProjectName() + "-temp"));
+            FileTools.getOrCreate(new File(tempDir, key.getProjectName() + "-temp"));
+            customTemps.put(key, temp);
+        });
 
-		// Extract the input jars to their processing directories
-		FusePlugin.logger.lifecycle("Unpacking input jars");
+        // Extract the input jars to their processing directories
+        FuseJavaPlugin.logger.lifecycle("Unpacking input jars");
 
-		customTemps.forEach((key, value) -> value.forEach((k, v) -> {
-			if (FileTools.exists(k)) {
-				try {
-					jarManager.unpackJar(k, v);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}));
+        customTemps.forEach((key, value) -> value.forEach((k, v) -> {
+            if (FileTools.exists(k)) {
+                try {
+                    jarManager.unpackJar(k, v);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }));
 
-		File mergedTemp = FileTools.getOrCreate(new File(tempDir, "merged-temp"));
-		processManifests(mergedTemp);
+        File mergedTemp = FileTools.getOrCreate(new File(tempDir, "merged-temp"));
+        processManifests(mergedTemp);
 
-		for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
-			for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
-				FileTools.moveDirectory(entry2.getValue(), mergedTemp);
-			}
-		}
+        for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+            for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
+                FileTools.moveDirectory(entry2.getValue(), mergedTemp);
+            }
+        }
 
-		// Process duplicate packages and resources
-		FusePlugin.logger.lifecycle("Processing duplicate packages and resources");
-		processDuplicatePackages();
-		removeDuplicatePackages(mergedTemp);
-		removeDuplicateResources(mergedTemp);
+        // Process duplicate packages and resources
+        FuseJavaPlugin.logger.lifecycle("Processing duplicate packages and resources");
+        processDuplicatePackages();
+        removeDuplicatePackages(mergedTemp);
+        removeDuplicateResources(mergedTemp);
 
-		// Clean the output jar if it exists
-		FileUtils.deleteQuietly(outJar);
+        // Clean the output jar if it exists
+        FileUtils.deleteQuietly(outJar);
 
-		// Repack the fully processed jars into a single jar
-		FusePlugin.logger.lifecycle("Fusing jars into single jar");
-		jarManager.remapAndPack(mergedTemp, outJar, relocations);
+        // Repack the fully processed jars into a single jar
+        FuseJavaPlugin.logger.lifecycle("Fusing jars into single jar");
+        jarManager.remapAndPack(mergedTemp, outJar, relocations);
 
-		Files.move(outJar.toPath(), jarFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.move(outJar.toPath(), jarFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-	}
+    }
 
     /**
      * Clean the output directory before the task exists
+     *
      * @throws IOException - Thrown if an IO error occurs
      */
     public void clean() throws IOException {
-        FusePlugin.logger.lifecycle("Finishing up");
+        FuseJavaPlugin.logger.lifecycle("Finishing up");
         FileUtils.deleteQuietly(tempDir);
     }
 
@@ -150,10 +146,11 @@ class MergeJarAction implements CopyAction {
 
     /**
      * Process input jars to relocate them internally to their final package names
+     *
      * @throws IOException - Thrown if an IO error occurs
      */
     public void remapJars() throws IOException {
-        FusePlugin.logger.lifecycle("Start processing input jars");
+        FuseJavaPlugin.logger.lifecycle("Start processing input jars");
 
         for (Map.Entry<FuseConfiguration, File> entry : customInputs.entrySet()) {
             if (FileTools.exists(entry.getValue())) {
@@ -165,8 +162,9 @@ class MergeJarAction implements CopyAction {
 
     /**
      * Remap a Custom Jar
+     *
      * @param configuration - The configuration of the custom package
-     * @param jarFile - The input jar of the custom project to be processed
+     * @param jarFile       - The input jar of the custom project to be processed
      * @throws IOException - Thrown if an io exception occurs
      */
     private void remapCustomJar(FuseConfiguration configuration, File jarFile) throws IOException {
@@ -186,6 +184,7 @@ class MergeJarAction implements CopyAction {
 
     /**
      * Process the manifest files from all the input jars and combine them into one
+     *
      * @param mergedTemp - The processing directory
      * @throws IOException - Thrown if an IO error occurs
      */
@@ -272,6 +271,7 @@ class MergeJarAction implements CopyAction {
 
     /**
      * Relocate duplicate packages from their original location, to a single location
+     *
      * @param mergedTemps - The processing directory
      * @throws IOException - Thrown if an IO exception occurs
      */
@@ -291,6 +291,7 @@ class MergeJarAction implements CopyAction {
 
     /**
      * Remove duplicate resources files from extracted jars
+     *
      * @param mergedTemps - The processing directory
      * @throws IOException - Thrown if an IO error occurs
      */
