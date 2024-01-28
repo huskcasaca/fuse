@@ -5,16 +5,20 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.zip.Deflater;
 
 import org.apache.commons.io.FileUtils;
+import org.gradle.api.internal.file.copy.CopyAction;
+import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
+import org.gradle.api.tasks.WorkResult;
+import org.gradle.api.tasks.WorkResults;
 
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
@@ -23,24 +27,11 @@ import dev.huskuraft.gradle.plugins.fuse.FusePlugin;
 import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 @RequiredArgsConstructor(staticName = "of")
-public class MergeJarAction {
+class MergeJarAction implements CopyAction {
 
-    // File Inputs
-    @Setter private File forgeInput;
-    @Setter private File fabricInput;
-    @Setter private File quiltInput;
     private final Map<FuseConfiguration, File> customInputs;
-
-    // Relocations
-    @Setter private Map<String, String> forgeRelocations;
-    @Setter private Map<String, String> fabricRelocations;
-    @Setter private Map<String, String> quiltRelocations;
-
-    // Mixins
-    @Setter private List<String> forgeMixins;
 
     // Custom
     private Map<FuseConfiguration, Map<File, File>> customTemps;
@@ -50,122 +41,97 @@ public class MergeJarAction {
     private final Map<String, String> ignoredDuplicateRelocations = new HashMap<>();
     private final Map<String, String> removeDuplicateRelocationResources = new HashMap<>();
     private final List<Relocation> relocations = new ArrayList<>();
-    JarManager jarManager = JarManager.getInstance();
+    private final JarManager jarManager = JarManager.getInstance();
 
 
     // Settings
-    private final String group;
     private final File tempDir;
-    private final String outJarName;
+    private final File jarFile;
 
-    /**
-     * Start the merge process
-     * @param skipIfExists - Should the task be cancelled if an existing merged jar is found
-     * @return - The fully merged jar file
-     * @throws IOException - Thrown when an IO Exception occurs
+	/**
+	 * Start the merge process
+	 * @return - The fully merged jar file
      */
-    public File mergeJars(boolean skipIfExists) throws IOException {
-        jarManager.setCompressionLevel(Deflater.BEST_COMPRESSION);
-        File outJar = new File(tempDir, outJarName);
-        if (outJar.exists()) {
-            if (skipIfExists) return outJar;
-            outJar.delete();
-        }
 
-        FusePlugin.logger.lifecycle("Cleaning output Directory");
-        FileTools.createOrReCreate(tempDir);
+	@Override
+	public WorkResult execute(CopyActionProcessingStream stream) {
+		try {
+			merge();
+			clean();
+		} catch (IOException e) {
+			return WorkResults.didWork(false);
+		}
+        return WorkResults.didWork(true);
+	}
 
-        // Check if the required input files exists
-        if (forgeInput == null && fabricInput == null && quiltInput == null && customInputs.isEmpty()) {
-            throw new IllegalArgumentException("No input jars were provided.");
-        }
+	public void merge() throws IOException {
 
-//        if (modFusionerExtension.getForgeConfiguration() != null && !FileTools.exists(forgeInput)) {
-//            logger.warn("Forge jar does not exist! You can ignore this warning if you are not using forge");
-//        }
-//
-//        if (modFusionerExtension.getFabricConfiguration() != null && !FileTools.exists(fabricInput)) {
-//            logger.warn("Fabric jar does not exist! You can ignore this warning if you are not using fabric");
-//        }
-//
-//        if (modFusionerExtension.getQuiltConfiguration() != null && !FileTools.exists(quiltInput)) {
-//            logger.warn("Quilt jar does not exist! You can ignore this warning if you are not using quilt");
-//        }
+		jarManager.setCompressionLevel(Deflater.BEST_COMPRESSION);
+		File outJar = new File(tempDir, jarFile.getName());
 
-        customInputs.forEach((key, value) -> {
-            if (!FileTools.exists(value)) {
-                FusePlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
-            }
-        });
+		FusePlugin.logger.lifecycle("Cleaning output Directory");
+		FileTools.createOrReCreate(tempDir);
 
-        // Remap the jar files to match their platform name
-        remapJars();
+		// Check if the required input files exists
+		if (customInputs.isEmpty()) {
+			throw new IllegalArgumentException("No input jars were provided.");
+		}
+		customInputs.forEach((key, value) -> {
+			if (!FileTools.exists(value)) {
+				FusePlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
+			}
+		});
 
-        // Create the temporary processing directories
-        File fabricTemp = FileTools.getOrCreate(new File(tempDir, "fabric-temp"));
-        File forgeTemp = FileTools.getOrCreate(new File(tempDir, "forge-temp"));
-        File quiltTemp = FileTools.getOrCreate(new File(tempDir, "quilt-temp"));
+		// Remap the jar files to match their platform name
+		remapJars();
 
-        customTemps = new HashMap<>();
-        customInputs.forEach((key, value) -> {
-            Map<File, File> temp = new HashMap<>();
+		customTemps = new HashMap<>();
+		customInputs.forEach((key, value) -> {
+			Map<File, File> temp = new HashMap<>();
 
-            temp.put(value, new File(tempDir, key.getProjectName() + "-temp"));
-            FileTools.getOrCreate(new File(tempDir, key.getProjectName() + "-temp"));
-            customTemps.put(key, temp);
-        });
+			temp.put(value, new File(tempDir, key.getProjectName() + "-temp"));
+			FileTools.getOrCreate(new File(tempDir, key.getProjectName() + "-temp"));
+			customTemps.put(key, temp);
+		});
 
-        // Extract the input jars to their processing directories
-        FusePlugin.logger.lifecycle("Unpacking input jars");
+		// Extract the input jars to their processing directories
+		FusePlugin.logger.lifecycle("Unpacking input jars");
 
-        if (FileTools.exists(forgeInput)) {
-            jarManager.unpackJar(forgeInput, forgeTemp);
-        }
-        if (FileTools.exists(fabricInput)) {
-            jarManager.unpackJar(fabricInput, fabricTemp);
-        }
-        if (FileTools.exists(quiltInput)) {
-            jarManager.unpackJar(quiltInput, quiltTemp);
-        }
+		customTemps.forEach((key, value) -> value.forEach((k, v) -> {
+			if (FileTools.exists(k)) {
+				try {
+					jarManager.unpackJar(k, v);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 
-        customTemps.forEach((key, value) -> value.forEach((k, v) -> {
-            if (FileTools.exists(k)) {
-                try {
-                    jarManager.unpackJar(k, v);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }));
+		File mergedTemp = FileTools.getOrCreate(new File(tempDir, "merged-temp"));
+		processManifests(mergedTemp);
 
-        File mergedTemp = FileTools.getOrCreate(new File(tempDir, "merged-temp"));
-        processManifests(mergedTemp, forgeTemp, fabricTemp, quiltTemp);
+		for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
+			for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
+				FileTools.moveDirectory(entry2.getValue(), mergedTemp);
+			}
+		}
 
-        FileTools.moveDirectory(forgeTemp, mergedTemp);
-        FileTools.moveDirectory(fabricTemp, mergedTemp);
-        FileTools.moveDirectory(quiltTemp, mergedTemp);
+		// Process duplicate packages and resources
+		FusePlugin.logger.lifecycle("Processing duplicate packages and resources");
+		processDuplicatePackages();
+		removeDuplicatePackages(mergedTemp);
+		removeDuplicateResources(mergedTemp);
 
-        for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
-            for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
-                FileTools.moveDirectory(entry2.getValue(), mergedTemp);
-            }
-        }
+		// Clean the output jar if it exists
+		FileUtils.deleteQuietly(outJar);
 
-        // Process duplicate packages and resources
-        FusePlugin.logger.lifecycle("Processing duplicate packages and resources");
-        processDuplicatePackages();
-        removeDuplicatePackages(mergedTemp);
-        removeDuplicateResources(mergedTemp);
+		// Repack the fully processed jars into a single jar
+		FusePlugin.logger.lifecycle("Fusing jars into single jar");
+		jarManager.remapAndPack(mergedTemp, outJar, relocations);
 
-        // Clean the output jar if it exists
-        FileUtils.deleteQuietly(outJar);
+		Files.move(outJar.toPath(), jarFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
-        // Repack the fully processed jars into a single jar
-        FusePlugin.logger.lifecycle("Fusing jars into single jar");
-        jarManager.remapAndPack(mergedTemp, outJar, relocations);
-
-        return outJar;
-    }
+	}
 
     /**
      * Clean the output directory before the task exists
@@ -189,10 +155,6 @@ public class MergeJarAction {
     public void remapJars() throws IOException {
         FusePlugin.logger.lifecycle("Start processing input jars");
 
-        remapJar(forgeInput, "forge", forgeRelocations);
-        remapJar(fabricInput, "fabric", fabricRelocations);
-        remapJar(quiltInput, "quilt", quiltRelocations);
-
         for (Map.Entry<FuseConfiguration, File> entry : customInputs.entrySet()) {
             if (FileTools.exists(entry.getValue())) {
                 remapCustomJar(entry.getKey(), entry.getValue());
@@ -200,59 +162,6 @@ public class MergeJarAction {
         }
     }
 
-    /**
-     * Remap a Forge/Fabric/Quilt Jar
-     * @param jarFile - The input jar
-     * @param target - The identifier of the package names
-     * @param relocations - List of packages to be moved around
-     * @throws IOException - Thrown if an io exception occurs
-     */
-    private void remapJar(File jarFile, String target, Map<String, String> relocations) throws IOException {
-        if (FileTools.exists(jarFile)) {
-            File remappedJar = FileTools.createOrReCreateF(new File(tempDir, "temp" + target + "InMerging.jar"));
-
-            List<Relocation> jarRelocations = new ArrayList<>();
-            jarRelocations.add(new Relocation(group, target + "." + group));
-            if (relocations != null)
-                jarRelocations.addAll(relocations.entrySet().stream().map(entry -> new Relocation(entry.getKey(), entry.getValue())).collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
-
-            AtomicReference<String> architectury = new AtomicReference<>();
-            architectury.set(null);
-
-            JarFile jar = new JarFile(jarFile);
-            jar.stream().forEach(jarEntry -> {
-                if (jarEntry.isDirectory()) {
-                    if (jarEntry.getName().startsWith("architectury_inject")) {
-                        architectury.set(jarEntry.getName());
-                    }
-                } else {
-                    String firstDirectory = FileTools.getFirstDirectory(jarEntry.getName());
-                    if (firstDirectory.startsWith("architectury_inject")) {
-                        architectury.set(firstDirectory);
-                    }
-                }
-            });
-            jar.close();
-
-            if (architectury.get() != null) {
-                jarRelocations.add(new Relocation(architectury.get(), target + "." + architectury.get()));
-            }
-
-            jarManager.remapJar(jarFile, remappedJar, jarRelocations);
-
-            switch (target) {
-                case "forge":
-                    forgeInput = remappedJar;
-                    break;
-                case "fabric":
-                    fabricInput = remappedJar;
-                    break;
-                case "quilt":
-                    quiltInput = remappedJar;
-                    break;
-            }
-        }
-    }
 
     /**
      * Remap a Custom Jar
@@ -269,153 +178,22 @@ public class MergeJarAction {
         if (configuration.getRelocations() != null)
             customRelocations.addAll(configuration.getRelocations().entrySet().stream().map(entry -> new Relocation(entry.getKey(), entry.getValue())).collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 
-//        AtomicReference<String> architectury = new AtomicReference<>();
-//        architectury.set(null);
-//
-//        JarFile jar = new JarFile(jarFile);
-//        jar.stream().forEach(jarEntry -> {
-//            if (jarEntry.isDirectory()) {
-//                if (jarEntry.getName().startsWith("architectury_inject")) {
-//                    architectury.set(jarEntry.getName());
-//                }
-//            } else {
-//                String firstDirectory = getFirstDirectory(jarEntry.getName());
-//                if (firstDirectory.startsWith("architectury_inject")) {
-//                    architectury.set(firstDirectory);
-//                }
-//            }
-//        });
-//        jar.close();
-//
-//        if (architectury.get() != null) {
-//            customRelocations.add(new Relocation(architectury.get(), name + "." + architectury.get()));
-//        }
 
         jarManager.remapJar(jarFile, remappedJar, customRelocations);
         customInputs.replace(configuration, jarFile, remappedJar);
     }
 
-    /**
-     * Process resource files from unpacked jars to remap them to their new package names
-     * @param forgeTemps - The forge processing directory
-     * @param fabricTemps - The fabric processing directory
-     * @param quiltTemps - The quilt processing directory
-     * @throws IOException - Thrown if an IO error occurs
-     */
-    private void remapResources(File forgeTemps, File fabricTemps, File quiltTemps) throws IOException {
-        FusePlugin.logger.lifecycle("Start Remapping Resources");
-//        remapJarResources(forgeInput, "forge", forgeTemps, forgeRelocations);
-//        remapJarResources(fabricInput, "fabric", fabricTemps, fabricRelocations);
-//        remapJarResources(quiltInput, "quilt", quiltTemps, quiltRelocations);
-//
-//        for (Map.Entry<FusionerExtension.CustomConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
-//            for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
-//                if (entry2.getKey() != null && entry2.getKey().exists()) {
-//                    File customTemps = entry2.getValue();
-//                    String name = entry.getKey().getProjectName();
-//                    remapJarResources(null, name, customTemps, entry.getKey().getRelocations());
-//                }
-//            }
-//        }
-    }
-
-    /**
-     * Remap resource files from jar. Used to remove duplicate code from {@link MergeJarAction#remapResources(File, File, File)}
-     * @param jar - The jar file being processed
-     * @param identifier - The group identifier of the packages
-     * @param workingDir - The processing directory
-     * @param relocations - List of packages that have been relocated
-     * @throws IOException - Thrown if an IO error occurs
-     */
-    private void remapJarResources(File jar, String identifier, File workingDir, Map<String, String> relocations) throws IOException {
-        if (jar != null && !jar.exists())
-            return;
-
-        if (relocations == null) relocations = new HashMap<>();
-        for (File file : FileTools.embeddedJars(workingDir)) {
-            File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
-            relocations.put(file.getName(), remappedFile.getName());
-            file.renameTo(remappedFile);
-        }
-
-        for (File file : FileTools.getPlatformServices(workingDir, group)) {
-            File remappedFile = new File(file.getParentFile(), identifier + "." + file.getName());
-            relocations.put(file.getName(), remappedFile.getName());
-            file.renameTo(remappedFile);
-        }
-
-        if (identifier.equalsIgnoreCase("forge"))
-            forgeMixins = new ArrayList<>();
-
-        for (File file : FileTools.getMixins(workingDir, !identifier.equalsIgnoreCase("forge"))) {
-            File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
-            relocations.put(file.getName(), remappedFile.getName());
-            file.renameTo(remappedFile);
-
-            if (identifier.equalsIgnoreCase("forge"))
-                forgeMixins.add(remappedFile.getName());
-        }
-
-        if (!identifier.equalsIgnoreCase("forge")) {
-            for (File file : FileTools.getAccessWideners(workingDir)) {
-                File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
-                relocations.put(file.getName(), remappedFile.getName());
-                file.renameTo(remappedFile);
-            }
-        }
-
-        for (File file : FileTools.getRefmaps(workingDir)) {
-            File remappedFile = new File(file.getParentFile(), identifier + "-" + file.getName());
-            relocations.put(file.getName(), remappedFile.getName());
-            file.renameTo(remappedFile);
-        }
-
-        relocations.put(group, identifier + "." + group);
-        relocations.put(group.replace(".", "/"), identifier + "/" + group.replace(".", "/"));
-
-        for (File file : FileTools.getTextFiles(workingDir)) {
-            List<String> lines = FileUtils.readLines(file, StandardCharsets.UTF_8);
-            StringBuilder sb = new StringBuilder();
-
-            for (String line : lines) {
-                for (HashMap.Entry<String, String> entry : relocations.entrySet()) {
-                    line = line.replace(entry.getKey(), entry.getValue());
-                }
-                sb.append(line).append("\n");
-            }
-            FileUtils.write(file, sb.toString().trim(), StandardCharsets.UTF_8);
-        }
-    }
-
-    /**
-     * ================================================================================================================
-     * =                                         Manifest Merging                                                     =
-     * ================================================================================================================
-     */
 
     /**
      * Process the manifest files from all the input jars and combine them into one
      * @param mergedTemp - The processing directory
-     * @param forgeTemp - The forge processing directory
-     * @param fabricTemp - The fabric processing directory
-     * @param quiltTemp - The quilt processing directory
      * @throws IOException - Thrown if an IO error occurs
      */
-    public void processManifests(File mergedTemp, File forgeTemp, File fabricTemp, File quiltTemp) throws IOException {
+    public void processManifests(File mergedTemp) throws IOException {
         Manifest mergedManifest = new Manifest();
-        Manifest forgeManifest = new Manifest();
-        Manifest fabricManifest = new Manifest();
-        Manifest quiltManifest = new Manifest();
         List<Manifest> customManifests = new ArrayList<>();
 
         FileInputStream fileInputStream = null;
-        if (FileTools.exists(forgeInput)) forgeManifest.read(fileInputStream = new FileInputStream(new File(forgeTemp, "META-INF/MANIFEST.MF")));
-        if (fileInputStream != null) fileInputStream.close();
-        if (FileTools.exists(fabricInput)) fabricManifest.read(fileInputStream = new FileInputStream(new File(fabricTemp, "META-INF/MANIFEST.MF")));
-        if (fileInputStream != null) fileInputStream.close();
-        if (FileTools.exists(quiltInput)) quiltManifest.read(fileInputStream = new FileInputStream(new File(quiltTemp, "META-INF/MANIFEST.MF")));
-        if (fileInputStream != null) fileInputStream.close();
-
         for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
             for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
                 Manifest manifest = new Manifest();
@@ -426,10 +204,6 @@ public class MergeJarAction {
                 if (fileInputStream != null) fileInputStream.close();
             }
         }
-
-        forgeManifest.getMainAttributes().forEach((key, value) -> mergedManifest.getMainAttributes().putValue(key.toString(), value.toString()));
-        fabricManifest.getMainAttributes().forEach((key, value) -> mergedManifest.getMainAttributes().putValue(key.toString(), value.toString()));
-        quiltManifest.getMainAttributes().forEach((key, value) -> mergedManifest.getMainAttributes().putValue(key.toString(), value.toString()));
 
         for (Manifest manifest : customManifests) {
             manifest.getMainAttributes().forEach((key, value) -> mergedManifest.getMainAttributes().putValue(key.toString(), value.toString()));
@@ -452,34 +226,8 @@ public class MergeJarAction {
 
             mergedManifest.getMainAttributes().putValue("MixinConfigs", String.join(",", remappedMixin));
         }
-
-        if (this.forgeMixins != null) {
-            List<String> newForgeMixins = new ArrayList<>();
-            for (String mixin : this.forgeMixins) {
-                newForgeMixins.add("forge-" + mixin);
-            }
-            this.forgeMixins = newForgeMixins;
-            if (!forgeMixins.isEmpty()) mergedManifest.getMainAttributes().putValue("MixinConfigs", String.join(",", this.forgeMixins));
-        }
-
-        remapResources(forgeTemp, fabricTemp, quiltTemp);
-
-        if (this.forgeMixins != null && mergedManifest.getMainAttributes().getValue("MixinConfigs") == null) {
-            FusePlugin.logger.debug("Couldn't detect forge mixins. You can ignore this if you are not using mixins with forge.\n" +
-                    "If this is an issue then you can configure mixins manually\n" +
-                    "Though we'll try to detect them automatically.\n");
-            if (!forgeMixins.isEmpty()) {
-                FusePlugin.logger.debug("Detected forge mixins: " + String.join(",", this.forgeMixins) + "\n");
-                mergedManifest.getMainAttributes().putValue("MixinConfigs", String.join(",", this.forgeMixins));
-            }
-        }
-
         // TODO Manifest Version
         //mergedManifest.getMainAttributes().putValue(manifestVersionKey, version);
-
-        if (FileTools.exists(forgeInput)) new File(forgeTemp, "META-INF/MANIFEST.MF").delete();
-        if (FileTools.exists(fabricInput)) new File(fabricTemp, "META-INF/MANIFEST.MF").delete();
-        if (FileTools.exists(quiltInput)) new File(quiltTemp, "META-INF/MANIFEST.MF").delete();
 
         for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
             for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {
@@ -506,21 +254,6 @@ public class MergeJarAction {
         if (ignoredPackages != null) {
             for (String duplicate : ignoredPackages) {
                 String duplicatePath = duplicate.replace(".", "/");
-
-                if (FileTools.exists(forgeInput)) {
-                    ignoredDuplicateRelocations.put("forge." + duplicate, duplicate);
-                    removeDuplicateRelocationResources.put("forge/" + duplicatePath, duplicatePath);
-                }
-
-                if (FileTools.exists(fabricInput)) {
-                    ignoredDuplicateRelocations.put("fabric." + duplicate, duplicate);
-                    removeDuplicateRelocationResources.put("fabric/" + duplicatePath, duplicatePath);
-                }
-
-                if (FileTools.exists(quiltInput)) {
-                    ignoredDuplicateRelocations.put("quilt." + duplicate, duplicate);
-                    removeDuplicateRelocationResources.put("quilt/" + duplicatePath, duplicatePath);
-                }
 
                 for (Map.Entry<FuseConfiguration, Map<File, File>> entry : customTemps.entrySet()) {
                     for (Map.Entry<File, File> entry2 : entry.getValue().entrySet()) {

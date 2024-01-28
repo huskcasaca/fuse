@@ -24,7 +24,7 @@ public class FusePlugin implements Plugin<Project> {
 		TaskProvider<FuseJar> task = project.getTasks().register(FUSE_JAR_TASK_NAME, FuseJar.class, fuse -> {
 			fuse.setGroup(FUSE_JAR_TASK_GROUP);
 			fuse.setDescription("Merge multiple jars into a single jar, for multi mod loader projects");
-			fuse.getArchiveClassifier().set("all");
+			fuse.getArchiveClassifier().set("fuse");
 		});
 //		project.getArtifacts().add(Constants.TASK_GROUP, project.getTasks().named(FUSE_JAR_TASK_NAME));
 
