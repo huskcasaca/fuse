@@ -28,17 +28,18 @@ import java.util.zip.Deflater;
 
 @RequiredArgsConstructor(staticName = "of")
 class MergeJarAction implements CopyAction {
-
-    private final Map<FuseConfiguration, File> customInputs;
     // Relocations
-    private final List<String> ignoredPackages;
     private final Map<String, String> ignoredDuplicateRelocations = new HashMap<>();
     private final Map<String, String> removeDuplicateRelocationResources = new HashMap<>();
     private final List<Relocation> relocations = new ArrayList<>();
     private final JarManager jarManager = JarManager.getInstance();
+
     // Settings
-    private final File tempDir;
     private final File jarFile;
+    private final File tempDir;
+
+    private final Map<FuseConfiguration, File> fuses;
+    private final List<String> ignoredPackages;
     // Custom
     private Map<FuseConfiguration, Map<File, File>> customTemps;
 
@@ -68,10 +69,10 @@ class MergeJarAction implements CopyAction {
         FileTools.createOrReCreate(tempDir);
 
         // Check if the required input files exists
-        if (customInputs.isEmpty()) {
+        if (fuses.isEmpty()) {
             throw new IllegalArgumentException("No input jars were provided.");
         }
-        customInputs.forEach((key, value) -> {
+        fuses.forEach((key, value) -> {
             if (!FileTools.exists(value)) {
                 FuseJavaPlugin.logger.warn(key.getProjectName() + " jar does not exist! You can ignore this if you are not using custom configurations");
             }
@@ -81,7 +82,7 @@ class MergeJarAction implements CopyAction {
         remapJars();
 
         customTemps = new HashMap<>();
-        customInputs.forEach((key, value) -> {
+        fuses.forEach((key, value) -> {
             Map<File, File> temp = new HashMap<>();
 
             temp.put(value, new File(tempDir, key.getProjectName() + "-temp"));
@@ -152,7 +153,7 @@ class MergeJarAction implements CopyAction {
     public void remapJars() throws IOException {
         FuseJavaPlugin.logger.lifecycle("Start processing input jars");
 
-        for (Map.Entry<FuseConfiguration, File> entry : customInputs.entrySet()) {
+        for (Map.Entry<FuseConfiguration, File> entry : fuses.entrySet()) {
             if (FileTools.exists(entry.getValue())) {
                 remapCustomJar(entry.getKey(), entry.getValue());
             }
@@ -178,7 +179,7 @@ class MergeJarAction implements CopyAction {
 
 
         jarManager.remapJar(jarFile, remappedJar, customRelocations);
-        customInputs.replace(configuration, jarFile, remappedJar);
+        fuses.replace(configuration, jarFile, remappedJar);
     }
 
 
