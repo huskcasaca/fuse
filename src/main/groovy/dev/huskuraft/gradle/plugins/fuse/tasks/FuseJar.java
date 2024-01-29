@@ -1,82 +1,119 @@
 package dev.huskuraft.gradle.plugins.fuse.tasks;
 
-import dev.huskuraft.gradle.plugins.fuse.FuseJavaPlugin;
-import dev.huskuraft.gradle.plugins.fuse.config.FuseConfiguration;
+import com.hypherionmc.jarmanager.JarManager;
+import com.hypherionmc.jarrelocator.Relocation;
+import dev.huskuraft.gradle.plugins.fuse.config.FuseSource;
+import dev.huskuraft.gradle.plugins.fuse.config.FuseSourceSpec;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
-import groovy.lang.Closure;
-import lombok.Getter;
+import org.gradle.api.Action;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.internal.file.copy.CopyAction;
 import org.gradle.api.tasks.Nested;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class FuseJar extends Jar implements FuseSpec {
 
-    @Getter
-    @Nested
-    private final List<FuseConfiguration> fuseConfigurations = new ArrayList<>();
+    public static final String FUSE_JAR_DESCRIPTION = "Merge multiple jars into a single jar, for multi mod loader projects";
+    public static final String FUSE_JAR_CLASSIFIER = "fuse";
 
-    @Getter
-    @Nested
+    private final List<FuseSource> fuseSources = new ArrayList<>();
+
     private final List<String> duplicateRelocations = new ArrayList<>();
+
+    public FuseJar() {
+        setDescription(FUSE_JAR_DESCRIPTION);
+        getArchiveClassifier().set(FUSE_JAR_CLASSIFIER);
+
+        getProject().afterEvaluate(project -> {
+            for (var fuseConfiguration : getFuseConfigurations()) {
+                resolveInputTasks(fuseConfiguration.getProject(), fuseConfiguration.getTask(), FuseJar.this);
+            }
+        });
+
+
+
+    }
+
+    @Nested
+    public List<FuseSource> getFuseConfigurations() {
+        return fuseSources;
+    }
+
+    @Nested
+    public List<String> getDuplicateRelocations() {
+        return duplicateRelocations;
+    }
+
+    /**
+     * Try to locate the correct task to run on the subproject
+     *
+     * @param project - Sub project being processed
+     * @param taskLike        - The name of the task that will be run
+     * @param fuseTask      - The FuseJars task
+     */
+    private void resolveInputTasks(Project project, Object taskLike, FuseJar fuseTask) {
+        if (taskLike == null) throw new NullPointerException("task name cannot be null");
+        if (project == null) throw new NullPointerException("source project cannot be null");
+
+        Task task = null;
+
+        if (taskLike instanceof String string) {
+            task = project.getTasks().getByName(string);
+        }
+
+        if (!(task instanceof AbstractArchiveTask archiveTask)) throw new IllegalArgumentException("task must be an AbstractArchiveTask");
+
+        var prepareTask = project.task("prepareFuseTask" + project.getPath().replace(":", "-"));
+        fuseTask.dependsOn(prepareTask.dependsOn(archiveTask));
+    }
 
     @Override
     protected @NotNull CopyAction createCopyAction() {
-        var customProjects = new HashMap<Project, FuseConfiguration>();
-        var validation = new ArrayList<Boolean>();
 
-        for (FuseConfiguration customSettings : getFuseConfigurations()) {
-            try {
-                customProjects.put(getProject().getAllprojects().stream().filter(p -> p.getPath().equals(getProject().project(customSettings.getSource()).getPath())).findFirst().get(), customSettings);
-                validation.add(true);
-            } catch (NoSuchElementException ignored) {
-            }
-        }
-
-        if (validation.isEmpty()) FuseJavaPlugin.logger.warn("Only one project was found.");
-        if (validation.size() == 1) FuseJavaPlugin.logger.warn("No projects were found.");
-
-        var fuses = new HashMap<FuseConfiguration, File>();
-
-        for (var entry : customProjects.entrySet()) {
-            var inputFile = getInputFile(entry.getValue().getInputTaskName(), entry.getKey());
-            if (inputFile != null) {
-                fuses.put(entry.getValue(), inputFile);
-            }
-        }
-
-        return MergeJarAction.of(
+        return new MergeJarAction(
             getArchiveFile().get().getAsFile(),
-            new File(getTemporaryDir(), "fuseJar"),
-            fuses,
+            getTemporaryDir(),
+            JarManager.getInstance(),
+            getFuses(),
             getDuplicateRelocations()
         );
     }
 
-    @Nullable
-    private File getInputFile(String inputTaskName, Project inProject) {
-        assert inputTaskName != null;
-        assert !inputTaskName.isEmpty();
-        return FileTools.resolveFile(inProject, inputTaskName);
+    private List<Fuse> getFuses() {
+
+        if (getFuseConfigurations().isEmpty()) getLogger().warn("Only one project was found.");
+        if (getFuseConfigurations().size() == 1) getLogger().warn("No projects were found.");
+
+        var fuses = new ArrayList<Fuse>();
+
+        for (var entry : getFuseConfigurations()) {
+            var inputFile = FileTools.resolveFile(entry.getProject(), entry.getTask());
+            if (inputFile != null) {
+                var relocations = entry.getRelocations().entrySet().stream().map(e -> new Relocation(e.getKey(), e.getValue())).toList();
+                fuses.add(new Fuse.Impl(inputFile, entry.getProject().getName(), relocations));
+            }
+        }
+
+        return fuses;
+
     }
 
     @Override
-    public FuseConfiguration fuse(Closure<FuseConfiguration> closure) {
-        var fuseConfiguration = new FuseConfiguration();
-        getProject().configure(fuseConfiguration, closure);
+    public FuseSpec includeJar(Action<FuseSourceSpec> closure) {
+        var fuseConfiguration = new FuseSource();
+        getProject().configure(List.of(fuseConfiguration), closure);
 
-        if (fuseConfiguration.getProjectName() == null || fuseConfiguration.getProjectName().isEmpty()) {
-            throw new IllegalStateException("Custom project configurations need to specify a \"projectName\"");
+        if (fuseConfiguration.getProject() == null) {
+            throw new IllegalStateException("includeJar {} requires a \"source\"");
         }
-        fuseConfigurations.add(fuseConfiguration);
-        return fuseConfiguration;
+        fuseSources.add(fuseConfiguration);
+        return this;
     }
+
 }

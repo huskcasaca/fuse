@@ -3,7 +3,6 @@ package dev.huskuraft.gradle.plugins.fuse.utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.jetbrains.annotations.NotNull;
 
@@ -105,7 +104,7 @@ public class FileTools {
             deleteDirectory(srcDir);
             if (srcDir.exists()) {
                 throw new IOException("Failed to delete original directory '" + srcDir +
-                        "' after copy to '" + destDir + "'");
+                    "' after copy to '" + destDir + "'");
             }
         }
     }
@@ -119,7 +118,7 @@ public class FileTools {
      * @throws IOException - Thrown if an IO error occurs
      */
     public static void moveFileInternal(final File srcFile, final File destFile, final CopyOption... copyOptions)
-            throws IOException {
+        throws IOException {
         validateMoveParameters(srcFile, destFile);
         requireFile(srcFile, "srcFile");
         final boolean rename = srcFile.renameTo(destFile);
@@ -128,7 +127,7 @@ public class FileTools {
             if (!srcFile.delete()) {
                 FileUtils.deleteQuietly(destFile);
                 throw new IOException("Failed to delete original file '" + srcFile +
-                        "' after copy to '" + destFile + "'");
+                    "' after copy to '" + destFile + "'");
             }
         }
     }
@@ -418,21 +417,26 @@ public class FileTools {
 
     public static File resolveFile(Project project, Object obj) {
         if (obj == null) {
-            throw new NullPointerException("Null Path");
+            throw new NullPointerException("Task object cannot be null");
         }
 
-        if (obj instanceof String) {
-            Task t = project.getTasks().getByName((String) obj);
-            if (t instanceof AbstractArchiveTask)
-                return ((AbstractArchiveTask) t).getArchiveFile().get().getAsFile();
+        if (obj instanceof String string) {
+            var task = project.getTasks().named(string);
+            if (task.isPresent()) {
+                if (task.get() instanceof AbstractArchiveTask archiveTask) {
+                    return archiveTask.getArchiveFile().get().getAsFile();
+                } else {
+                    throw new IllegalArgumentException("Task '" + obj + "' in '" + project + "' is not an AbstractArchiveTask");
+                }
+            }
         }
 
-        if (obj instanceof File) {
-            return (File) obj;
+        if (obj instanceof File file) {
+            return file;
         }
 
-        if (obj instanceof AbstractArchiveTask) {
-            return ((AbstractArchiveTask) obj).getArchiveFile().get().getAsFile();
+        if (obj instanceof AbstractArchiveTask archiveTask) {
+            return archiveTask.getArchiveFile().get().getAsFile();
         }
         return project.file(obj);
     }

@@ -45,9 +45,6 @@ dependencies {
     shadeMe 'org.ow2.asm:asm:9.5'
     shadeMe 'org.ow2.asm:asm-commons:9.5'
     shadeMe 'org.apache.commons:commons-compress:1.24.0'
-
-    compileOnly 'org.projectlombok:lombok:1.18.30'
-    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 }
 
 shadowJar {
@@ -71,32 +68,13 @@ gradlePlugin {
 jar {
     manifest {
         attributes([
-                'Timestamp'               : System.currentTimeMillis(),
-                'Specification-Title'     : project.archivesBaseName,
-                'Specification-Version'   : project.version,
-                'Implementation-Title'    : project.archivesBaseName,
-                'Implementation-Version'  : project.version,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})"
+            'Timestamp'               : System.currentTimeMillis(),
+            'Specification-Title'     : project.archivesBaseName,
+            'Specification-Version'   : project.version,
+            'Implementation-Title'    : project.archivesBaseName,
+            'Implementation-Version'  : project.version,
+            'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            'Built-On-Java'           : "${System.getProperty('java.vm.version')} (${System.getProperty('java.vm.vendor')})"
         ])
-    }
-}
-
-spotless {
-    java {
-        targetExclude("src/test/**")
-        licenseHeaderFile(rootProject.file("HEADER")).yearSeparator("-")
-    }
-}
-
-publishing {
-    repositories {
-        maven {
-            url System.getenv('MAVEN_URL')
-            credentials {
-                username System.getenv('MAVEN_USER')
-                password System.getenv('MAVEN_PASS')
-            }
-        }
     }
 }
