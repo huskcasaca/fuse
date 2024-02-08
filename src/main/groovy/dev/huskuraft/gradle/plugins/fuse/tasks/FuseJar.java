@@ -3,7 +3,6 @@ package dev.huskuraft.gradle.plugins.fuse.tasks;
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
 import dev.huskuraft.gradle.plugins.fuse.config.FuseSource;
-import dev.huskuraft.gradle.plugins.fuse.config.FuseSourceSpec;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
@@ -69,8 +68,7 @@ public class FuseJar extends Jar implements FuseSpec {
 
         if (!(task instanceof AbstractArchiveTask archiveTask)) throw new IllegalArgumentException("task must be an AbstractArchiveTask");
 
-        var prepareTask = project.task("prepareFuseTask" + project.getPath().replace(":", "-"));
-        fuseTask.dependsOn(prepareTask.dependsOn(archiveTask));
+        fuseTask.dependsOn(archiveTask);
     }
 
     @Override
@@ -105,7 +103,7 @@ public class FuseJar extends Jar implements FuseSpec {
     }
 
     @Override
-    public FuseSpec includeJar(Action<FuseSourceSpec> closure) {
+    public FuseSpec includeJar(Action<FuseSource> closure) {
         var fuseConfiguration = new FuseSource();
         getProject().configure(List.of(fuseConfiguration), closure);
 
