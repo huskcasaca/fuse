@@ -58,6 +58,22 @@ public class FileTools {
     }
 
     /**
+     * Create a file if it doesn't exist
+     *
+     * @param file - The directory to create
+     * @return - The "now existent" directory
+     */
+    public static File getOrCreateFile(File file) throws IOException {
+        if (!file.getParentFile().exists())
+            file.getParentFile().mkdirs();
+
+        if (!file.exists())
+            file.createNewFile();
+
+        return file;
+    }
+
+    /**
      * Move a directory from one location to another
      *
      * @param sourceDir - The directory to copy from
@@ -76,7 +92,7 @@ public class FileTools {
             File outPath = new File(outDir, f.getName());
 
             if (f.isDirectory()) {
-                moveDirectoryInternal(f, outPath);
+                moveDirectory(f, outPath);
             }
 
             if (f.isFile()) {

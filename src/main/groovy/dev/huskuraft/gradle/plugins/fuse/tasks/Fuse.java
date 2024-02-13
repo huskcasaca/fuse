@@ -8,14 +8,14 @@ import java.util.List;
 
 public interface Fuse {
 
-    File file();
+    File root();
 
     String name();
 
     List<Relocation> relocations();
 
     record Impl(
-        @NotNull File file,
+        @NotNull File root,
         @NotNull String name,
         @NotNull List<Relocation> relocations
     ) implements Fuse {

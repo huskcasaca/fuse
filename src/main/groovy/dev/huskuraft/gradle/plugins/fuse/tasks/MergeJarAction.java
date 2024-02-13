@@ -2,14 +2,18 @@ package dev.huskuraft.gradle.plugins.fuse.tasks;
 
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
+import dev.huskuraft.gradle.plugins.fuse.merger.Merger;
+import dev.huskuraft.gradle.plugins.fuse.merger.MergerContext;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import org.apache.commons.io.FileUtils;
+import org.gradle.api.internal.file.DefaultFileTreeElement;
 import org.gradle.api.internal.file.copy.CopyAction;
 import org.gradle.api.internal.file.copy.CopyActionProcessingStream;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.WorkResults;
 
 import java.io.*;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,13 +35,15 @@ class MergeJarAction implements CopyAction {
     private final File tempDir;
     private final JarManager jarManager;
     private final List<Fuse> fuses;
+    private final List<Merger> mergers;
     private final List<String> ignoredPackages;
 
-    MergeJarAction(File jarFile, File tempDir, JarManager jarManager, List<Fuse> fuses, List<String> ignoredPackages) {
+    MergeJarAction(File jarFile, File tempDir, JarManager jarManager, List<Fuse> fuses, List<Merger> mergers, List<String> ignoredPackages) {
         this.jarFile = jarFile;
         this.tempDir = tempDir;
         this.jarManager = jarManager;
         this.fuses = fuses;
+        this.mergers = mergers;
         this.ignoredPackages = ignoredPackages;
     }
 
@@ -60,7 +66,7 @@ class MergeJarAction implements CopyAction {
         var mergedManifest = mergeManifestsInMetaInf(unpackedDirs);
 
         for (var dir : unpackedDirs) {
-            FileTools.moveDirectory(dir, mergedDir);
+            moveDirectory(dir, mergedDir);
         }
 
         writeManifestInMetaInf(mergedDir, mergedManifest);
@@ -70,16 +76,50 @@ class MergeJarAction implements CopyAction {
 
     }
 
+
+    public void moveDirectory(File sourceDir, File outDir) throws IOException {
+        if (!FileTools.exists(sourceDir))
+            return;
+
+        var files = sourceDir.listFiles();
+        if (files == null)
+            return;
+
+        for (var file : files) {
+            var outPath = new File(outDir, file.getName());
+
+            if (file.isDirectory()) {
+                moveDirectory(file, outPath);
+            }
+
+            if (file.isFile()) {
+                var merged = false;
+                for (var merger : mergers) {
+                    if (merger.canMerge(DefaultFileTreeElement.of(file, null))) {
+                        FileTools.getOrCreateFile(outPath);
+                        merger.merge(
+                            new MergerContext(new FileInputStream(file), new FileOutputStream(outPath, true))
+                        );
+                        merged = true;
+                    }
+                }
+                if (!merged) {
+                    FileTools.moveFileInternal(file, outPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
+
     private List<File> getUnpackedDirs() throws IOException {
         if (fuses.isEmpty()) {
             throw new IllegalArgumentException("No input jars were provided.");
         }
         var fuseDirs = new ArrayList<File>();
         for (var fuse : fuses) {
-            if (!FileTools.exists(fuse.file())) {
-                throw new FileNotFoundException("Fuse artifact " + fuse.file().getName() + " does not exist!");
+            if (!FileTools.exists(fuse.root())) {
+                throw new FileNotFoundException("Fuse artifact " + fuse.root().getName() + " does not exist!");
             }
-            fuseDirs.add(unpackJar(remapJar(fuse.file(), fuse.relocations())));
+            fuseDirs.add(unpackJar(remapJar(fuse.root(), fuse.relocations())));
         }
         return fuseDirs;
     }

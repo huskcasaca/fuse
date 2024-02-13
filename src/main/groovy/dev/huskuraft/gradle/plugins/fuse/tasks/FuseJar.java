@@ -3,6 +3,8 @@ package dev.huskuraft.gradle.plugins.fuse.tasks;
 import com.hypherionmc.jarmanager.JarManager;
 import com.hypherionmc.jarrelocator.Relocation;
 import dev.huskuraft.gradle.plugins.fuse.config.FuseSource;
+import dev.huskuraft.gradle.plugins.fuse.merger.Merger;
+import dev.huskuraft.gradle.plugins.fuse.merger.ServiceFileMerger;
 import dev.huskuraft.gradle.plugins.fuse.utils.FileTools;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
@@ -13,6 +15,7 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.jvm.tasks.Jar;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +27,8 @@ public class FuseJar extends Jar implements FuseSpec {
     private final List<FuseSource> fuseSources = new ArrayList<>();
 
     private final List<String> duplicateRelocations = new ArrayList<>();
+
+    private final List<Merger> mergers = new ArrayList<>();
 
     public FuseJar() {
         setDescription(FUSE_JAR_DESCRIPTION);
@@ -79,8 +84,8 @@ public class FuseJar extends Jar implements FuseSpec {
             getTemporaryDir(),
             JarManager.getInstance(),
             getFuses(),
-            getDuplicateRelocations()
-        );
+            getMergers(),
+            getDuplicateRelocations());
     }
 
     private List<Fuse> getFuses() {
@@ -102,6 +107,10 @@ public class FuseJar extends Jar implements FuseSpec {
 
     }
 
+    private List<Merger> getMergers() {
+        return mergers;
+    }
+
     @Override
     public FuseSpec includeJar(Action<FuseSource> closure) {
         var fuseConfiguration = new FuseSource();
@@ -112,6 +121,24 @@ public class FuseJar extends Jar implements FuseSpec {
         }
         fuseSources.add(fuseConfiguration);
         return this;
+    }
+
+    public void mergeServiceFiles() {
+        try {
+            merge(ServiceFileMerger.class, null);
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void merge(Class<? extends Merger> clazz, Action<Merger> action) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        Merger merger = (Merger) clazz.getDeclaredConstructor().newInstance();
+        merge(merger, action);
+    }
+
+    public void merge(Merger merger, Action<Merger> action) {
+        if (action != null) action.execute(merger);
+        this.mergers.add(merger);
     }
 
 }
